@@ -1,0 +1,55 @@
+# Visual Studio / Rider / VSCode
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.idea/
+*.code-workspace
+
+# Build outputs
+/bin/
+*/bin/
+*/obj/
+**/obj/
+
+# Configuration
+appsettings.*.json
+
+# Visual Studio cache
+*.cache
+*.log
+*.vspscc
+*.vssscc
+
+# NuGet packages
+*.nupkg
+**/packages/
+
+# Rider
+*.sln.iml
+
+# dotnet publish
+publish/
+
+# ASP.NET / Blazor WebAssembly
+wwwroot/_framework/
+wwwroot/_bin/
+wwwroot/_content/
+wwwroot/*.dll
+wwwroot/*.pdb
+
+# Static assets
+*.css.map
+*.js.map
+
+# VS Code
+.vscode/
+
+# User-specific
+*.env
+*.env.*
+
+# OS generated
+.DS_Store
+Thumbs.db
