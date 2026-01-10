@@ -1,3 +1,29 @@
-﻿@inherits LayoutComponentBase
+﻿@* MainLayout.razor *@
+@inherits LayoutComponentBase
 
-@Body
+<MudThemeProvider />
+
+<MudPopoverProvider />
+
+<MudDialogProvider />
+
+<MudSnackbarProvider />
+
+<MudAppBar Elevation="4">
+    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" />
+    <MudText Typo="Typo.h6">Демонстрация алгоритма на графах</MudText>
+    <MudSpacer />
+    <MudIconButton Icon="@Icons.Material.Filled.Brightness4" Color="Color.Inherit" />
+</MudAppBar>
+
+<MudMainContent>
+    <MudContainer MaxWidth="MaxWidth.Large" Class="my-4">
+        @* Здесь отображается содержимое ваших страниц (Index.razor и т.д.) *@
+        @Body
+    </MudContainer>
+</MudMainContent>
+
+@* 7. Нижний колонтитул (опционально) *@
+<MudAppBar Elevation="4" position="Position.Bottom">
+    <MudText Typo="Typo.body2">Лабораторная работа по алгоритмам на графах</MudText>
+</MudAppBar>
