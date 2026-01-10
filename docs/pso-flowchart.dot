@@ -1,0 +1,53 @@
+digraph PSO_Algorithm {
+    // Основные настройки графа: направление сверху вниз и ОРТОГОНАЛЬНЫЕ линии
+    rankdir=TB;
+    graph [splines=ortho]; // Ключевой атрибут для линий с поворотами 90°
+    node [fontname="Arial", fontsize=11, shape=plaintext];
+    edge [fontname="Arial", fontsize=10];
+
+    // ГОСТ: ОВАЛ - начало/конец
+    start [label="Начало", shape=oval];
+
+    // ГОСТ: ПРЯМОУГОЛЬНИК - процессы
+    init [label="Инициализировать\nрой частиц", shape=rect];
+    eval [label="Вычислить\nприспособленность", shape=rect];
+    update_best [label="Обновить\nглобальный оптимум", shape=rect];
+    update_v [label="Обновить скорости", shape=rect];
+    update_x [label="Обновить позиции", shape=rect];
+    repair [label="Исправить\nназначения", shape=rect];
+
+    // ГОСТ: ПРЯМОУГОЛЬНИК С ДВОЙНЫМИ ЛИНИЯМИ - предопределенный процесс
+    schedule [label="Определить\nпорядок выполнения", shape=rect];
+
+    // ГОСТ: РОМБ - решение
+    check_mem [label="Память\nдостаточна?", shape=diamond];
+    check_stop [label="Критерий\nостановки?", shape=diamond];
+
+    // ГОСТ: ОВАЛ - конец. ГАРАНТИРОВАННО в самом низу диаграммы.
+    end [label="Конец", shape=oval];
+
+    // Вертикальные соединения (теперь будут строго ортогональными)
+    start -> init;
+    init -> eval;
+    eval -> update_best;
+    update_best -> check_stop;
+
+    check_stop -> end [label="Да", fontsize=10];
+    check_stop -> update_v [label="Нет", fontsize=10];
+
+    update_v -> update_x;
+    update_x -> check_mem;
+
+    check_mem -> repair [label="Нет", fontsize=10];
+    check_mem -> schedule [label="Да", fontsize=10];
+
+    repair -> schedule;
+    schedule -> eval;
+
+    // ФИКСАЦИЯ БЛОКА "КОНЕЦ" В САМОМ НИЗУ ДИАГРАММЫ
+    // Этот подграф принудительно помещает узел 'end' на нижний уровень (rank=sink)
+    {
+        rank=sink;
+        end;
+    }
+}

@@ -1,0 +1,155 @@
+<svg width="281pt" height="854pt" viewBox="0.00 0.00 281.00 854.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 849.6)">
+<title>PSO_Algorithm</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-849.6 277.29,-849.6 277.29,4 -4,4"/>
+<!-- start -->
+<g id="node1" class="node">
+<title>start</title>
+<ellipse fill="none" stroke="black" cx="205.81" cy="-827.6" rx="32.59" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="205.81" y="-824.3" font-family="Arial" font-size="11.00">Начало</text>
+</g>
+<!-- init -->
+<g id="node2" class="node">
+<title>init</title>
+<polygon fill="none" stroke="black" points="262.7,-772.6 148.91,-772.6 148.91,-736.6 262.7,-736.6 262.7,-772.6"/>
+<text xml:space="preserve" text-anchor="middle" x="205.81" y="-757.9" font-family="Arial" font-size="11.00">Инициализировать</text>
+<text xml:space="preserve" text-anchor="middle" x="205.81" y="-744.7" font-family="Arial" font-size="11.00">рой частиц</text>
+</g>
+<!-- start&#45;&gt;init -->
+<g id="edge1" class="edge">
+<title>start-&gt;init</title>
+<path fill="none" stroke="black" d="M205.81,-809.18C205.81,-809.18 205.81,-784.53 205.81,-784.53"/>
+<polygon fill="black" stroke="black" points="209.31,-784.53 205.81,-774.53 202.31,-784.53 209.31,-784.53"/>
+</g>
+<!-- eval -->
+<g id="node3" class="node">
+<title>eval</title>
+<polygon fill="none" stroke="black" points="265.76,-699.6 145.85,-699.6 145.85,-663.6 265.76,-663.6 265.76,-699.6"/>
+<text xml:space="preserve" text-anchor="middle" x="205.81" y="-684.9" font-family="Arial" font-size="11.00">Вычислить</text>
+<text xml:space="preserve" text-anchor="middle" x="205.81" y="-671.7" font-family="Arial" font-size="11.00">приспособленность</text>
+</g>
+<!-- init&#45;&gt;eval -->
+<g id="edge2" class="edge">
+<title>init-&gt;eval</title>
+<path fill="none" stroke="black" d="M205.81,-736.18C205.81,-736.18 205.81,-711.53 205.81,-711.53"/>
+<polygon fill="black" stroke="black" points="209.31,-711.53 205.81,-701.53 202.31,-711.53 209.31,-711.53"/>
+</g>
+<!-- update_best -->
+<g id="node4" class="node">
+<title>update_best</title>
+<polygon fill="none" stroke="black" points="218.29,-626.6 95.32,-626.6 95.32,-590.6 218.29,-590.6 218.29,-626.6"/>
+<text xml:space="preserve" text-anchor="middle" x="156.81" y="-611.9" font-family="Arial" font-size="11.00">Обновить</text>
+<text xml:space="preserve" text-anchor="middle" x="156.81" y="-598.7" font-family="Arial" font-size="11.00">глобальный оптимум</text>
+</g>
+<!-- eval&#45;&gt;update_best -->
+<g id="edge3" class="edge">
+<title>eval-&gt;update_best</title>
+<path fill="none" stroke="black" d="M182.07,-663.18C182.07,-663.18 182.07,-638.53 182.07,-638.53"/>
+<polygon fill="black" stroke="black" points="185.57,-638.53 182.07,-628.53 178.57,-638.53 185.57,-638.53"/>
+</g>
+<!-- check_stop -->
+<g id="node10" class="node">
+<title>check_stop</title>
+<polygon fill="none" stroke="black" points="139.81,-553.6 62.68,-519.2 139.81,-484.8 216.93,-519.2 139.81,-553.6"/>
+<text xml:space="preserve" text-anchor="middle" x="139.81" y="-522.5" font-family="Arial" font-size="11.00">Критерий</text>
+<text xml:space="preserve" text-anchor="middle" x="139.81" y="-509.3" font-family="Arial" font-size="11.00">остановки?</text>
+</g>
+<!-- update_best&#45;&gt;check_stop -->
+<g id="edge4" class="edge">
+<title>update_best-&gt;check_stop</title>
+<path fill="none" stroke="black" d="M156.13,-590.51C156.13,-590.51 156.13,-558.29 156.13,-558.29"/>
+<polygon fill="black" stroke="black" points="159.63,-558.29 156.13,-548.29 152.63,-558.29 159.63,-558.29"/>
+</g>
+<!-- update_v -->
+<g id="node5" class="node">
+<title>update_v</title>
+<polygon fill="none" stroke="black" points="198.23,-436.8 81.38,-436.8 81.38,-400.8 198.23,-400.8 198.23,-436.8"/>
+<text xml:space="preserve" text-anchor="middle" x="139.81" y="-415.5" font-family="Arial" font-size="11.00">Обновить скорости</text>
+</g>
+<!-- update_x -->
+<g id="node6" class="node">
+<title>update_x</title>
+<polygon fill="none" stroke="black" points="195.18,-363.8 84.43,-363.8 84.43,-327.8 195.18,-327.8 195.18,-363.8"/>
+<text xml:space="preserve" text-anchor="middle" x="139.81" y="-342.5" font-family="Arial" font-size="11.00">Обновить позиции</text>
+</g>
+<!-- update_v&#45;&gt;update_x -->
+<g id="edge7" class="edge">
+<title>update_v-&gt;update_x</title>
+<path fill="none" stroke="black" d="M139.81,-400.38C139.81,-400.38 139.81,-375.73 139.81,-375.73"/>
+<polygon fill="black" stroke="black" points="143.31,-375.73 139.81,-365.73 136.31,-375.73 143.31,-375.73"/>
+</g>
+<!-- check_mem -->
+<g id="node9" class="node">
+<title>check_mem</title>
+<polygon fill="none" stroke="black" points="139.81,-279.8 56.56,-245.4 139.81,-211 223.05,-245.4 139.81,-279.8"/>
+<text xml:space="preserve" text-anchor="middle" x="139.81" y="-248.7" font-family="Arial" font-size="11.00">Память</text>
+<text xml:space="preserve" text-anchor="middle" x="139.81" y="-235.5" font-family="Arial" font-size="11.00">достаточна?</text>
+</g>
+<!-- update_x&#45;&gt;check_mem -->
+<g id="edge8" class="edge">
+<title>update_x-&gt;check_mem</title>
+<path fill="none" stroke="black" d="M139.81,-327.39C139.81,-327.39 139.81,-291.46 139.81,-291.46"/>
+<polygon fill="black" stroke="black" points="143.31,-291.46 139.81,-281.46 136.31,-291.46 143.31,-291.46"/>
+</g>
+<!-- repair -->
+<g id="node7" class="node">
+<title>repair</title>
+<polygon fill="none" stroke="black" points="175.37,-163 98.24,-163 98.24,-127 175.37,-127 175.37,-163"/>
+<text xml:space="preserve" text-anchor="middle" x="136.81" y="-148.3" font-family="Arial" font-size="11.00">Исправить</text>
+<text xml:space="preserve" text-anchor="middle" x="136.81" y="-135.1" font-family="Arial" font-size="11.00">назначения</text>
+</g>
+<!-- schedule -->
+<g id="node8" class="node">
+<title>schedule</title>
+<polygon fill="none" stroke="black" points="273.29,-90 150.32,-90 150.32,-54 273.29,-54 273.29,-90"/>
+<text xml:space="preserve" text-anchor="middle" x="211.81" y="-75.3" font-family="Arial" font-size="11.00">Определить</text>
+<text xml:space="preserve" text-anchor="middle" x="211.81" y="-62.1" font-family="Arial" font-size="11.00">порядок выполнения</text>
+</g>
+<!-- repair&#45;&gt;schedule -->
+<g id="edge11" class="edge">
+<title>repair-&gt;schedule</title>
+<path fill="none" stroke="black" d="M162.84,-126.58C162.84,-126.58 162.84,-101.93 162.84,-101.93"/>
+<polygon fill="black" stroke="black" points="166.34,-101.93 162.84,-91.93 159.34,-101.93 166.34,-101.93"/>
+</g>
+<!-- schedule&#45;&gt;eval -->
+<g id="edge12" class="edge">
+<title>schedule-&gt;eval</title>
+<path fill="none" stroke="black" d="M244.4,-90.24C244.4,-90.24 244.4,-651.62 244.4,-651.62"/>
+<polygon fill="black" stroke="black" points="240.9,-651.62 244.4,-661.62 247.9,-651.62 240.9,-651.62"/>
+</g>
+<!-- check_mem&#45;&gt;repair -->
+<g id="edge9" class="edge">
+<title>check_mem-&gt;repair</title>
+<path fill="none" stroke="black" d="M136.81,-211.97C136.81,-211.97 136.81,-174.89 136.81,-174.89"/>
+<polygon fill="black" stroke="black" points="140.31,-174.89 136.81,-164.89 133.31,-174.89 140.31,-174.89"/>
+<text xml:space="preserve" text-anchor="middle" x="146.14" y="-184" font-family="Arial" font-size="10.00">Нет</text>
+</g>
+<!-- check_mem&#45;&gt;schedule -->
+<g id="edge10" class="edge">
+<title>check_mem-&gt;schedule</title>
+<path fill="none" stroke="black" d="M199.21,-235.07C199.21,-235.07 199.21,-101.76 199.21,-101.76"/>
+<polygon fill="black" stroke="black" points="202.71,-101.76 199.21,-91.76 195.71,-101.76 202.71,-101.76"/>
+<text xml:space="preserve" text-anchor="middle" x="217.36" y="-142" font-family="Arial" font-size="10.00">Да</text>
+</g>
+<!-- check_stop&#45;&gt;update_v -->
+<g id="edge6" class="edge">
+<title>check_stop-&gt;update_v</title>
+<path fill="none" stroke="black" d="M139.81,-484.37C139.81,-484.37 139.81,-448.73 139.81,-448.73"/>
+<polygon fill="black" stroke="black" points="143.31,-448.73 139.81,-438.73 136.31,-448.73 143.31,-448.73"/>
+<text xml:space="preserve" text-anchor="middle" x="148.14" y="-457.8" font-family="Arial" font-size="10.00">Нет</text>
+</g>
+<!-- end -->
+<g id="node11" class="node">
+<title>end</title>
+<ellipse fill="none" stroke="black" cx="28.81" cy="-18" rx="28.81" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="28.81" y="-14.7" font-family="Arial" font-size="11.00">Конец</text>
+</g>
+<!-- check_stop&#45;&gt;end -->
+<g id="edge5" class="edge">
+<title>check_stop-&gt;end</title>
+<path fill="none" stroke="black" d="M62.05,-519C43.16,-519 28.28,-519 28.28,-519 28.28,-519 28.28,-47.94 28.28,-47.94"/>
+<polygon fill="black" stroke="black" points="31.78,-47.94 28.28,-37.94 24.78,-47.94 31.78,-47.94"/>
+<text xml:space="preserve" text-anchor="middle" x="34.36" y="-300.8" font-family="Arial" font-size="10.00">Да</text>
+</g>
+</g>
+</svg>
