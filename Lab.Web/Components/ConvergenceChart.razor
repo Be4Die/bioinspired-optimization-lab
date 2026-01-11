@@ -1,0 +1,144 @@
+@using Lab.PSO
+@using MudBlazor
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+<MudCard>
+    <MudCardHeader>
+        <MudCardHeaderContent>
+            <MudText Typo="Typo.h6">График сходимости алгоритма</MudText>
+            <MudText Typo="Typo.body2">Изменение лучшего фитнес-значения по итерациям</MudText>
+        </MudCardHeaderContent>
+        <MudCardHeaderActions>
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh" 
+                          OnClick="@RefreshChart"
+                          Disabled="@_isLoading" />
+            <MudIconButton Icon="@Icons.Material.Filled.Download" 
+                          OnClick="@ExportChartData"
+                          Disabled="@(_data?.ConvergenceChart?.Iterations?.Count == 0)" />
+        </MudCardHeaderActions>
+    </MudCardHeader>
+    
+    <MudCardContent>
+        @if (_data?.ConvergenceChart?.Iterations?.Count > 0)
+        {
+            <div class="chart-container" style="position: relative; height: 400px; width: 100%;">
+                <canvas id="convergenceChart" 
+                        @ref="_chartRef"
+                        style="max-width: 100%; height: auto !important;"></canvas>
+            </div>
+            
+            <MudGrid Class="mt-3">
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.body2">
+                        <strong>Лучшее значение:</strong> @(_data.Summary?.Fitness.ToString("F2") ?? "0.00")
+                    </MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.body2">
+                        <strong>Итераций:</strong> @(_data.ConvergenceChart?.Iterations?.Count ?? 0)
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        }
+        else
+        {
+            <MudText Class="text-center my-8" Typo="Typo.body1" Color="Color.Default">
+                Нет данных для отображения. Запустите алгоритм для получения результатов.
+            </MudText>
+        }
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public VisualizationData? Data { get; set; }
+    [Parameter] public EventCallback OnRefresh { get; set; }
+    
+    private ElementReference _chartRef;
+    private IJSObjectReference? _chartModule;
+    private bool _isLoading = false;
+    private VisualizationData? _data;
+    
+    protected override async System.Threading.Tasks.Task OnParametersSetAsync()
+    {
+        if (Data != _data)
+        {
+            _data = Data;
+            await InitializeChart();
+        }
+    }
+    
+    private async System.Threading.Tasks.Task InitializeChart()
+    {
+        if (_data?.ConvergenceChart?.Iterations?.Count == 0)
+            return;
+            
+        try
+        {
+            _isLoading = true;
+            
+            if (_chartModule == null)
+            {
+                _chartModule = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                    "import", "./js/charts.js");
+            }
+            
+            await _chartModule.InvokeVoidAsync(
+                "renderConvergenceChart",
+                _chartRef,
+                _data?.ConvergenceChart?.Iterations ?? new List<int>(),
+                _data?.ConvergenceChart?.BestFitness ?? new List<double>());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка инициализации графика: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+    
+    private async System.Threading.Tasks.Task RefreshChart()
+    {
+        await OnRefresh.InvokeAsync();
+        await InitializeChart();
+    }
+    
+    private async System.Threading.Tasks.Task ExportChartData()
+    {
+        if (_data?.ConvergenceChart == null)
+            return;
+            
+        try
+        {
+            var exportData = new
+            {
+                Iterations = _data.ConvergenceChart.Iterations,
+                Fitness = _data.ConvergenceChart.BestFitness
+            };
+            
+            var json = System.Text.Json.JsonSerializer.Serialize(exportData);
+            await JSRuntime.InvokeVoidAsync("downloadJson", json, "convergence_chart.json");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка экспорта данных: {ex.Message}");
+        }
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        if (_chartModule != null)
+        {
+            try
+            {
+                await _chartModule.DisposeAsync();
+            }
+            catch
+            {
+                // Игнорируем ошибки при удалении
+            }
+        }
+    }
+}

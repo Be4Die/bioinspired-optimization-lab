@@ -1,0 +1,677 @@
+@page "/"
+@using Lab.Web.Services
+@using Lab.PSO
+@using MudBlazor
+@inject PSOService PsoService
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<PageTitle>PSO Algorithm Visualization - Распределение задач в облачной среде</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
+    <!-- Заголовок -->
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudGrid>
+            <MudItem xs="12" md="8">
+                <MudText Typo="Typo.h4">Алгоритм роя частиц для распределения задач</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Default">
+                    Визуализация работы биоинспирированного алгоритма для задачи распределения вычислительных задач 
+                    в облачной среде с учётом предшествования и ограничений ресурсов
+                </MudText>
+            </MudItem>
+            <MudItem xs="12" md="4" Class="text-right">
+                <MudChip T="string" Variant="Variant.Filled" 
+                         Color="GetStatusColor(PsoService.Status)"
+                         Class="ma-2">
+                    @GetStatusText(PsoService.Status)
+                </MudChip>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Панель управления -->
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Typo="Typo.h6" Class="mb-3">Панель управления</MudText>
+            </MudItem>
+            
+            <!-- Конфигурация задачи -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudNumericField T="int" @bind-Value="_config.TaskCount"
+                                 Label="Количество задач"
+                                 Min="1"
+                                 Max="1000"
+                                 Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudNumericField T="int" @bind-Value="_config.MachineCount"
+                                 Label="Количество машин"
+                                 Min="1"
+                                 Max="50"
+                                 Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudNumericField T="int?" @bind-Value="_config.RandomSeed"
+                                 Label="Семя генератора"
+                                 HelperText="Оставьте пустым для случайного" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3" Class="d-flex align-end">
+                <MudButton Variant="Variant.Filled"
+                          Color="Color.Primary"
+                          StartIcon="@Icons.Material.Filled.PlayArrow"
+                          OnClick="@InitializeProblem"
+                          FullWidth="true"
+                          Disabled="@(PsoService.Status == AlgorithmStatus.Running)">
+                    Инициализировать задачу
+                </MudButton>
+            </MudItem>
+            
+            <!-- Конфигурация алгоритма -->
+            <MudItem xs="12" Class="mt-4">
+                <MudExpansionPanel Text="Настройки алгоритма PSO">
+                    <MudGrid>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudNumericField T="int" @bind-Value="_psoConfig.SwarmSize"
+                                             Label="Размер роя"
+                                             Min="10"
+                                             Max="500"
+                                             Immediate="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudNumericField T="int" @bind-Value="_psoConfig.MaxIterations"
+                                             Label="Макс. итераций"
+                                             Min="10"
+                                             Max="5000"
+                                             Immediate="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="2">
+                            <MudNumericField T="double" @bind-Value="_psoConfig.InertiaWeight"
+                                             Label="Инерция (w)"
+                                             Min="0.1"
+                                             Max="1.5"
+                                             Step="0.1"
+                                             Immediate="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="2">
+                            <MudNumericField T="double" @bind-Value="_psoConfig.CognitiveWeight"
+                                             Label="Когнитивный (c1)"
+                                             Min="0.1"
+                                             Max="3.0"
+                                             Step="0.1"
+                                             Immediate="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="2">
+                            <MudNumericField T="double" @bind-Value="_psoConfig.SocialWeight"
+                                             Label="Социальный (c2)"
+                                             Min="0.1"
+                                             Max="3.0"
+                                             Step="0.1"
+                                             Immediate="true" />
+                        </MudItem>
+                    </MudGrid>
+                </MudExpansionPanel>
+            </MudItem>
+            
+            <!-- Кнопки управления -->
+            <MudItem xs="12" Class="mt-4">
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Filled"
+                              Color="Color.Success"
+                              StartIcon="@Icons.Material.Filled.PlayCircle"
+                              OnClick="@StartAlgorithm"
+                              Disabled="@(PsoService.Status != AlgorithmStatus.Ready && PsoService.Status != AlgorithmStatus.Completed)"
+                              Loading="@_isRunning">
+                        @(_isRunning ? "Выполняется..." : "Запустить алгоритм")
+                    </MudButton>
+                    
+                    <MudButton Variant="Variant.Filled"
+                              Color="Color.Error"
+                              StartIcon="@Icons.Material.Filled.Stop"
+                              OnClick="@StopAlgorithm"
+                              Disabled="@(PsoService.Status != AlgorithmStatus.Running)">
+                        Остановить
+                    </MudButton>
+                    
+                    <MudButton Variant="Variant.Filled"
+                              Color="Color.Secondary"
+                              StartIcon="@Icons.Material.Filled.Refresh"
+                              OnClick="@ResetAlgorithm">
+                        Сбросить
+                    </MudButton>
+                    
+                    <MudSpacer />
+                    
+                    <MudButton Variant="Variant.Filled"
+                              Color="Color.Info"
+                              StartIcon="@Icons.Material.Filled.Download"
+                              OnClick="@ExportResults"
+                              Disabled="@(PsoService.CurrentSolution == null)">
+                        Экспорт результатов
+                    </MudButton>
+                </div>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Информация о задаче -->
+    @if (PsoService.CurrentInstance != null)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="1">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h6" Class="mb-3">Информация о задаче</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-3 text-center" Elevation="0" Style="background-color: #E3F2FD;">
+                        <MudText Typo="Typo.caption" Color="Color.Default">Задач</MudText>
+                        <MudText Typo="Typo.h4">@PsoService.CurrentInstance.Tasks.Count</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-3 text-center" Elevation="0" Style="background-color: #E8F5E9;">
+                        <MudText Typo="Typo.caption" Color="Color.Default">Машин</MudText>
+                        <MudText Typo="Typo.h4">@PsoService.CurrentInstance.VirtualMachines.Count</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-3 text-center" Elevation="0" Style="background-color: #FFF3E0;">
+                        <MudText Typo="Typo.caption" Color="Color.Default">Зависимостей</MudText>
+                        <MudText Typo="Typo.h4">
+                            @PsoService.CurrentInstance.Tasks.Values.Sum(t => t.PredecessorIds.Count)
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-3 text-center" Elevation="0" Style="background-color: #F3E5F5;">
+                        <MudText Typo="Typo.caption" Color="Color.Default">Память</MudText>
+                        <MudText Typo="Typo.h4">
+                            @PsoService.CurrentInstance.VirtualMachines.Values.Sum(m => m.AvailableMemory)
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+
+    <!-- Прогресс выполнения -->
+    @if (_isRunning || PsoService.ProgressHistory.Count > 0)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="1">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h6" Class="mb-3">Прогресс выполнения</MudText>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudLinearProgress Color="Color.Primary"
+                                      Value="@_progressValue"
+                                      Class="my-2" />
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.caption">
+                            Итерация: @(_currentIteration)/@_psoConfig.MaxIterations
+                        </MudText>
+                        <MudText Typo="Typo.caption">
+                            Лучший фитнес: @(_bestFitness.ToString("F2"))
+                        </MudText>
+                        <MudText Typo="Typo.caption">
+                            Время: @_executionTime.ToString(@"mm\:ss")
+                        </MudText>
+                    </div>
+                </MudItem>
+                @if (PsoService.ProgressHistory.Count > 1)
+                {
+                    <MudItem xs="12" Class="mt-3">
+                        <MudSimpleTable Dense="true" Hover="true">
+                            <thead>
+                                <tr>
+                                    <th>Итерация</th>
+                                    <th>Лучший фитнес</th>
+                                    <th>Средний фитнес</th>
+                                    <th>Улучшение</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var progress in PsoService.ProgressHistory.TakeLast(10).Reverse())
+                                {
+                                    <tr>
+                                        <td>@progress.Iteration</td>
+                                        <td>@progress.BestFitness.ToString("F2")</td>
+                                        <td>@progress.AverageFitness.ToString("F2")</td>
+                                        <td>
+                                            <MudIcon Icon="@Icons.Material.Filled.TrendingDown"
+                                                    Color="Color.Success"
+                                                    Size="Size.Small" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudPaper>
+    }
+
+    <!-- Результаты -->
+    @if (PsoService.CurrentSolution != null)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="1">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h6" Class="mb-3">Результаты решения</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-3 text-center" Elevation="0" Style="background-color: #E8F5E9;">
+                        <MudText Typo="Typo.caption" Color="Color.Default">Makespan</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Success">
+                            @PsoService.CurrentSolution.Makespan.ToString("F2")
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-3 text-center" Elevation="0" Style="background-color: #FFF3E0;">
+                        <MudText Typo="Typo.caption" Color="Color.Default">Штраф</MudText>
+                        <MudText Typo="Typo.h4" Color="@GetPenaltyColor(PsoService.CurrentSolution.TotalPenalty)">
+                            @PsoService.CurrentSolution.TotalPenalty.ToString("F2")
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-3 text-center" Elevation="0" Style="background-color: #E3F2FD;">
+                        <MudText Typo="Typo.caption" Color="Color.Default">Фитнес</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Primary">
+                            @PsoService.CurrentSolution.Fitness.ToString("F2")
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-3 text-center" Elevation="0" Style="background-color: #F3E5F5;">
+                        <MudText Typo="Typo.caption" Color="Color.Default">Время вычисления</MudText>
+                        <MudText Typo="Typo.h4">
+                            @PsoService.CurrentSolution.ComputationTime.TotalSeconds.ToString("F2") с
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" Class="mt-3">
+                    <MudAlert Severity="GetFeasibilitySeverity(PsoService.CurrentSolution.TotalPenalty)"
+                              Variant="Variant.Filled"
+                              Dense="true">
+                        @GetFeasibilityMessage(PsoService.CurrentSolution.TotalPenalty)
+                    </MudAlert>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+
+    <!-- Визуализации -->
+    <MudTabs @bind-ActivePanelIndex="_activeTab" Class="mb-4">
+        <MudTabPanel Text="График сходимости">
+            @if (PsoService.VisualizationData != null)
+            {
+                <ConvergenceChart Data="@PsoService.VisualizationData"
+                                OnRefresh="@RefreshVisualization" />
+            }
+            else
+            {
+                <MudText Class="text-center my-8" Typo="Typo.body1" Color="Color.Default">
+                    Нет данных для отображения
+                </MudText>
+            }
+        </MudTabPanel>
+        
+        <MudTabPanel Text="Диаграмма Ганта">
+            @if (PsoService.VisualizationData != null)
+            {
+                <GanttChart Data="@PsoService.VisualizationData" />
+            }
+            else
+            {
+                <MudText Class="text-center my-8" Typo="Typo.body1" Color="Color.Default">
+                    Нет данных для отображения
+                </MudText>
+            }
+        </MudTabPanel>
+        
+        <MudTabPanel Text="Распределение задач">
+            @if (PsoService.VisualizationData != null)
+            {
+                <TaskDistributionChart Data="@PsoService.VisualizationData"
+                                      OnMachineSelected="@HandleMachineSelected" />
+            }
+            else
+            {
+                <MudText Class="text-center my-8" Typo="Typo.body1" Color="Color.Default">
+                    Нет данных для отображения
+                </MudText>
+            }
+        </MudTabPanel>
+        
+        <MudTabPanel Text="Тепловая карта">
+            @if (PsoService.VisualizationData != null)
+            {
+                <ResourceHeatmap Data="@PsoService.VisualizationData" />
+            }
+            else
+            {
+                <MudText Class="text-center my-8" Typo="Typo.body1" Color="Color.Default">
+                    Нет данных для отображения
+                </MudText>
+            }
+        </MudTabPanel>
+        
+        <MudTabPanel Text="Детали решения">
+            @if (PsoService.CurrentSolution != null)
+            {
+                <MudPaper Class="pa-4" Elevation="1">
+                    <MudText Typo="Typo.h6" Class="mb-3">Детали назначения задач</MudText>
+                    <MudTable Items="@_taskAssignments"
+                              Hover="true"
+                              Striped="true"
+                              Breakpoint="Breakpoint.Sm">
+                        <HeaderContent>
+                            <MudTh>Задача</MudTh>
+                            <MudTh>Машина</MudTh>
+                            <MudTh>Начало</MudTh>
+                            <MudTh>Завершение</MudTh>
+                            <MudTh>Длительность</MudTh>
+                            <MudTh>Память</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            @{
+                                var assignment = (TaskAssignment)context;
+                            }
+                            <MudTr>
+                                <MudTd>@assignment.TaskId</MudTd>
+                                <MudTd>
+                                    <MudChip T="string" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small">
+                                        VM @assignment.MachineId
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd>@assignment.StartTime.ToString("F2")</MudTd>
+                                <MudTd>@assignment.CompletionTime.ToString("F2")</MudTd>
+                                <MudTd>@assignment.Duration.ToString("F2")</MudTd>
+                                <MudTd>
+                                    <MudBadge Color="@(assignment.HasMemoryViolation ? Color.Error : Color.Success)">
+                                        @assignment.MemoryRequirement
+                                    </MudBadge>
+                                </MudTd>
+                            </MudTr>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+            else
+            {
+                <MudText Class="text-center my-8" Typo="Typo.body1" Color="Color.Default">
+                    Нет данных для отображения.
+                </MudText>
+            }
+        </MudTabPanel>
+    </MudTabs>
+
+    <!-- Граф задач (опционально) -->
+    @if (PsoService.CurrentInstance != null)
+    {
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.h6" Class="mb-3">Граф зависимостей задач</MudText>
+            <div class="graph-container" style="height: 300px; border: 1px solid #e0e0e0;">
+                <!-- Здесь можно разместить визуализацию графа с использованием JavaScript библиотеки -->
+                <MudText Class="text-center my-8" Typo="Typo.body1" Color="Color.Default">
+                    Графическое представление зависимостей задач будет отображено здесь.
+                </MudText>
+            </div>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    // Конфигурация
+    private ProblemConfiguration _config = new() { TaskCount = 20, MachineCount = 4 };
+    private PSOConfiguration _psoConfig = PSOConfiguration.Default;
+    
+    // Состояние UI
+    private bool _isRunning = false;
+    private int _activeTab = 0;
+    private double _progressValue = 0;
+    private int _currentIteration = 0;
+    private double _bestFitness = 0;
+    private TimeSpan _executionTime = TimeSpan.Zero;
+    private DateTime _startTime;
+    private System.Threading.Timer? _progressTimer;
+    
+    // Данные для таблицы
+    private List<TaskAssignment> _taskAssignments = new();
+    
+    [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
+    
+    protected override async System.Threading.Tasks.Task OnInitializedAsync()
+    {
+        // Подписываемся на события сервиса
+        PsoService.OnProgressChanged += HandleProgressChanged;
+        PsoService.OnSolutionFound += HandleSolutionFound;
+        PsoService.OnVisualizationDataUpdated += HandleVisualizationUpdated;
+        
+        // Запускаем таймер для обновления времени выполнения
+        _progressTimer = new System.Threading.Timer(
+            _ => UpdateExecutionTime(),
+            null,
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(1));
+    }
+    
+    private async System.Threading.Tasks.Task InitializeProblem()
+    {
+        try
+        {
+            PsoService.InitializeRandomInstance(
+                _config.TaskCount,
+                _config.MachineCount,
+                _config.RandomSeed);
+            
+            Snackbar.Add($"Задача создана: {_config.TaskCount} задач, {_config.MachineCount} машин", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка инициализации: {ex.Message}", Severity.Error);
+        }
+    }
+    
+    private async System.Threading.Tasks.Task StartAlgorithm()
+    {
+        try
+        {
+            _isRunning = true;
+            _startTime = DateTime.Now;
+            _executionTime = TimeSpan.Zero;
+            
+            await PsoService.RunAlgorithmAsync(_psoConfig);
+            
+            Snackbar.Add("Алгоритм успешно завершен", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка выполнения: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isRunning = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void StopAlgorithm()
+    {
+        PsoService.StopAlgorithm();
+        Snackbar.Add("Алгоритм остановлен", Severity.Warning);
+    }
+    
+    private void ResetAlgorithm()
+    {
+        PsoService.Reset();
+        _isRunning = false;
+        _progressValue = 0;
+        _currentIteration = 0;
+        _bestFitness = 0;
+        _executionTime = TimeSpan.Zero;
+        
+        Snackbar.Add("Состояние сброшено", Severity.Info);
+    }
+    
+    private async System.Threading.Tasks.Task ExportResults()
+    {
+        try
+        {
+            var json = await PsoService.ExportSolutionAsync();
+            if (!string.IsNullOrEmpty(json))
+            {
+                await JSRuntime.InvokeVoidAsync("downloadJson", json, "pso_solution.json");
+                Snackbar.Add("Результаты экспортированы", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка экспорта: {ex.Message}", Severity.Error);
+        }
+    }
+    
+    private void HandleProgressChanged(object? sender, AlgorithmProgress progress)
+    {
+        _currentIteration = progress.Iteration;
+        _bestFitness = progress.BestFitness;
+        _progressValue = (double)progress.Iteration / _psoConfig.MaxIterations * 100;
+        
+        if (progress.IsComplete)
+        {
+            _isRunning = false;
+        }
+        
+        InvokeAsync(StateHasChanged);
+    }
+    
+    private void HandleSolutionFound(object? sender, Solution solution)
+    {
+        UpdateTaskAssignments();
+        InvokeAsync(StateHasChanged);
+    }
+    
+    private void HandleVisualizationUpdated(object? sender, VisualizationData data)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+    
+    private void UpdateTaskAssignments()
+    {
+        if (PsoService.CurrentSolution?.ScheduledTasks == null)
+            return;
+            
+        _taskAssignments = PsoService.CurrentSolution.ScheduledTasks.Values
+            .Select(task => new TaskAssignment
+            {
+                TaskId = task.Id,
+                MachineId = task.AssignedMachineId ?? 0,
+                StartTime = task.StartTime,
+                CompletionTime = task.CompletionTime,
+                Duration = task.CompletionTime - task.StartTime,
+                MemoryRequirement = task.MemoryRequirement,
+                HasMemoryViolation = task.AssignedMachineId.HasValue && 
+                    PsoService.CurrentInstance?.VirtualMachines?
+                        .GetValueOrDefault(task.AssignedMachineId.Value)?
+                        .HasSufficientMemory(task.MemoryRequirement) == false
+            })
+            .OrderBy(a => a.StartTime)
+            .ToList();
+    }
+    
+    private void UpdateExecutionTime()
+    {
+        if (_isRunning)
+        {
+            _executionTime = DateTime.Now - _startTime;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+    
+    private async System.Threading.Tasks.Task RefreshVisualization()
+    {
+        // Обновляем визуализацию
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    private async System.Threading.Tasks.Task HandleMachineSelected(int machineId)
+    {
+        // Обработка выбора машины
+        Snackbar.Add($"Выбрана машина VM {machineId}", Severity.Info);
+    }
+    
+    private Color GetStatusColor(AlgorithmStatus status)
+    {
+        return status switch
+        {
+            AlgorithmStatus.Running => Color.Warning,
+            AlgorithmStatus.Completed => Color.Success,
+            AlgorithmStatus.Error => Color.Error,
+            _ => Color.Default
+        };
+    }
+    
+    private string GetStatusText(AlgorithmStatus status)
+    {
+        return status switch
+        {
+            AlgorithmStatus.Idle => "Ожидание",
+            AlgorithmStatus.Ready => "Готов",
+            AlgorithmStatus.Running => "Выполняется",
+            AlgorithmStatus.Completed => "Завершено",
+            AlgorithmStatus.Stopped => "Остановлено",
+            AlgorithmStatus.Error => "Ошибка",
+            _ => "Неизвестно"
+        };
+    }
+    
+    private Color GetPenaltyColor(double penalty)
+    {
+        return penalty > 0 ? Color.Error : Color.Success;
+    }
+    
+    private Severity GetFeasibilitySeverity(double penalty)
+    {
+        return penalty > 0 ? Severity.Warning : Severity.Success;
+    }
+    
+    private string GetFeasibilityMessage(double penalty)
+    {
+        return penalty > 0 
+            ? "Решение содержит нарушения ограничений (жесткие ограничения не выполнены)"
+            : "Решение допустимо (все ограничения выполнены)";
+    }
+    
+    public void Dispose()
+    {
+        PsoService.OnProgressChanged -= HandleProgressChanged;
+        PsoService.OnSolutionFound -= HandleSolutionFound;
+        PsoService.OnVisualizationDataUpdated -= HandleVisualizationUpdated;
+        _progressTimer?.Dispose();
+    }
+    
+    // Вспомогательные классы
+    private class ProblemConfiguration
+    {
+        public int TaskCount { get; set; } = 20;
+        public int MachineCount { get; set; } = 4;
+        public int? RandomSeed { get; set; }
+    }
+    
+    private class TaskAssignment
+    {
+        public int TaskId { get; set; }
+        public int MachineId { get; set; }
+        public double StartTime { get; set; }
+        public double CompletionTime { get; set; }
+        public double Duration { get; set; }
+        public double MemoryRequirement { get; set; }
+        public bool HasMemoryViolation { get; set; }
+    }
+}

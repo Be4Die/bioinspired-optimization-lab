@@ -1,0 +1,248 @@
+/* Стили для GanttChart */
+.gantt-container {
+    width: 100%;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: #fafafa;
+}
+
+.gantt-timeline {
+    position: relative;
+    padding: 10px 0;
+}
+
+.gantt-header {
+    display: flex;
+    border-bottom: 2px solid #2196F3;
+    background-color: #e3f2fd;
+    padding: 8px 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.gantt-machine-header {
+    width: 120px;
+    min-width: 120px;
+    padding: 0 16px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+}
+
+.gantt-timeline-header {
+    flex: 1;
+    position: relative;
+    height: 24px;
+}
+
+.gantt-time-marker {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: #666;
+    border-left: 1px dashed #ccc;
+    height: 100%;
+    padding-left: 4px;
+}
+
+.gantt-row {
+    display: flex;
+    border-bottom: 1px solid #eee;
+    min-height: 40px;
+    align-items: center;
+}
+
+.gantt-row:hover {
+    background-color: #f5f5f5;
+}
+
+.gantt-machine-label {
+    width: 120px;
+    min-width: 120px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+}
+
+.gantt-tasks {
+    flex: 1;
+    position: relative;
+    height: 32px;
+}
+
+.gantt-task {
+    position: absolute;
+    height: 24px;
+    border-radius: 4px;
+    margin: 4px 0;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.gantt-task:hover {
+    transform: scaleY(1.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 5;
+}
+
+.gantt-task-label {
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 4px;
+}
+
+.gantt-legend {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.legend-items {
+    display: flex;
+    gap: 24px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+}
+
+.task-tooltip {
+    background-color: white;
+    border-left: 4px solid #2196F3;
+}
+
+/* Стили для ConvergenceChart */
+.chart-container {
+    position: relative;
+    height: 400px;
+    width: 100%;
+}
+
+/* Стили для TaskDistributionChart */
+.distribution-container {
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.distribution-header {
+    background-color: #f5f5f5;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.distribution-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.distribution-item {
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+}
+
+.distribution-item:hover {
+    background-color: #f0f7ff;
+}
+
+.distribution-item:last-child {
+    border-bottom: none;
+}
+
+.machine-info {
+    display: flex;
+    align-items: center;
+}
+
+.task-count {
+    display: flex;
+    align-items: center;
+}
+
+.task-count .mud-progress-linear {
+    flex: 1;
+    max-width: 100px;
+}
+
+.utilization {
+    display: flex;
+    align-items: center;
+}
+
+/* Стили для ResourceHeatmap */
+.heatmap-container {
+    width: 100%;
+}
+
+.heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.heatmap-cell {
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.heatmap-cell:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+.heatmap-cell-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.machine-id {
+    font-weight: bold;
+    color: rgba(0, 0, 0, 0.8);
+}
+
+.utilization-value {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.heatmap-legend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.legend-gradient {
+    width: 200px;
+    height: 20px;
+    border-radius: 4px;
+    background: linear-gradient(to right, #4CAF50, #FFC107, #F44336);
+}
+
+.tooltip {
+    border-left: 4px solid #FF9800;
+    background-color: #FFF8E1;
+}

@@ -12,4 +12,8 @@
         <PackageReference Include="MudBlazor" Version="8.15.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Lab.PSO\Lab.PSO.csproj" />
+    </ItemGroup>
+
 </Project>

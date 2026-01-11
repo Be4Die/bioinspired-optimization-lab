@@ -4,29 +4,32 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lab.Web</title>
+    <title>Lab.Web - Алгоритм роя частиц для распределения задач</title>
     <base href="/" />
     <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/additional.css" />
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
-    <link href="_content/MudBlazor/MudBlazor.min.css?v=1" rel="stylesheet" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <!-- Chart.js для графиков -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
-    <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
-    </div>
+<div id="app">
+    <svg class="loading-progress">
+        <circle r="40%" cx="50%" cy="50%" />
+        <circle r="40%" cx="50%" cy="50%" />
+    </svg>
+    <div class="loading-progress-text"></div>
+</div>
 
-    <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="." class="reload">Reload</a>
-        <span class="dismiss">🗙</span>
-    </div>
-    <script src="_framework/blazor.webassembly.js"></script>
-    <script src="_content/MudBlazor/MudBlazor.min.js?v=1"></script>
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+<script src="_framework/blazor.webassembly.js"></script>
+<script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>
 
 </html>
