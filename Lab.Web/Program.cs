@@ -11,6 +11,6 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 // Сервисы
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddMudServices();
-builder.Services.AddScoped<PsoService>();
+builder.Services.AddScoped<AlgorithmService>();
 
 await builder.Build().RunAsync();

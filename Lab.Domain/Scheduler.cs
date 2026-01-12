@@ -17,7 +17,7 @@ public class Scheduler
     /// </summary>
     /// <param name="assignment">Назначение задач на машины</param>
     /// <returns>Решение с вычисленным расписанием</returns>
-    private Solution CalculateSchedule(Dictionary<int, int> assignment)
+    public Solution CalculateSchedule(Dictionary<int, int> assignment)
     {
         var solution = new Solution
         {
