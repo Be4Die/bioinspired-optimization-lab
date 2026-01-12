@@ -19,12 +19,6 @@
                 </MudItem>
                 <MudItem xs="12" md="4" Class="d-flex justify-end">
                     <div class="d-flex gap-2">
-                        <MudButton Variant="Variant.Outlined" 
-                                  Color="Color.Primary" 
-                                  OnClick="Relayout"
-                                  StartIcon="@Icons.Material.Filled.Reorder">
-                            Переразложить
-                        </MudButton>
                         <MudButton Variant="Variant.Filled" 
                                   Color="Color.Primary" 
                                   OnClick="ZoomToFit"
@@ -40,15 +34,30 @@
     <MudItem xs="12" md="12">
         <MudPaper Class="pa-2" Elevation="1">
             <div class="bipartite-diagram-host" style="height: 500px;">
-                <CascadingValue Value="_diagram" IsFixed="true">
-                    <DiagramCanvas>
-                        <Widgets>
-                            <SelectionBoxWidget />
-                            <ZoomWidget />
-                            <NavigatorWidget Width="220" Height="140" Class="absolute bottom-2 right-2" />
-                        </Widgets>
-                    </DiagramCanvas>
-                </CascadingValue>
+                @if (Instance != null)
+                {
+                    <CascadingValue Value="_diagram" IsFixed="true">
+                        <DiagramCanvas>
+                            <Widgets>
+                                <SelectionBoxWidget />
+                                <ZoomWidget />
+                                <NavigatorWidget Width="220" Height="140" Class="absolute bottom-2 right-2" />
+                            </Widgets>
+                        </DiagramCanvas>
+                    </CascadingValue>
+                }
+                else
+                {
+                    <div style="text-align: center; padding: 30px; border: 2px dashed #e0e0e0; border-radius: 8px;">
+                        <MudIcon Icon="@Icons.Material.Filled.Grain" Size="MudBlazor.Size.Large" Color="Color.Default" Class="mb-2" />
+                        <MudText Typo="Typo.body1" Color="Color.Default" Class="d-block mb-2">
+                            Нет данных для отображения графа назначений
+                        </MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Default" Class="d-block">
+                            Создайте задачу, чтобы увидеть граф распределения
+                        </MudText>
+                    </div>
+                }
             </div>
         </MudPaper>
     </MudItem>
@@ -184,16 +193,9 @@
         }
     }
 
-    private void Relayout()
-    {
-        _builtForInstance = null;
-        BuildDiagram(forceRebuildNodes: true);
-        StateHasChanged();
-    }
-
     private void ZoomToFit()
     {
-        if (_diagram != null)
+        if (_diagram != null && Instance != null)
         {
             _diagram.ZoomToFit();
         }
