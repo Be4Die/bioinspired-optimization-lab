@@ -3,7 +3,7 @@
 @using Lab.PSO
 @using Size = MudBlazor.Size
 @using MudBlazor
-@inject PSOService PsoService
+@inject PsoService PsoService
 @inject ISnackbar Snackbar
 @implements IDisposable
 
@@ -607,7 +607,7 @@
         MinMachineMemory = 10,
         MaxMachineMemory = 30
     };
-    private PSOConfiguration _psoConfig = PSOConfiguration.Default;
+    private PsoConfiguration _psoConfig = PsoConfiguration.Default;
     
     // Состояние UI
     private bool _isRunning = false;

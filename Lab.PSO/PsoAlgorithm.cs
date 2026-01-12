@@ -1,34 +1,30 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Lab.PSO;
 
 /// <summary>
 /// Реализация алгоритма роя частиц для задачи распределения задач
 /// </summary>
-public class PSOAlgorithm
+public class PsoAlgorithm
 {
     // Параметры алгоритма
-    public int SwarmSize { get; set; } = 50;
-    public int MaxIterations { get; set; } = 500;
-    public double InertiaWeight { get; set; } = 0.7;
-    public double CognitiveWeight { get; set; } = 1.5;
-    public double SocialWeight { get; set; } = 1.5;
-    public int NoImprovementLimit { get; set; } = 50;
+    public int SwarmSize { get; init; } = 50;
+    public int MaxIterations { get; init; } = 500;
+    public double InertiaWeight { get; init; } = 0.7;
+    public double CognitiveWeight { get; init; } = 1.5;
+    public double SocialWeight { get; init; } = 1.5;
+    public int NoImprovementLimit { get; init; } = 50;
 
     // Состояние алгоритма
-    public List<Particle> Swarm { get; private set; }
-    public Dictionary<int, int> GlobalBestPosition { get; private set; }
-    public Solution GlobalBestSolution { get; private set; }
-    public double GlobalBestFitness { get; private set; } = double.MaxValue;
+    private List<Particle> Swarm { get; set; } = null!;
+    private Dictionary<int, int> GlobalBestPosition { get; set; } = null!;
+    public Solution? GlobalBestSolution { get; private set; }
+    private double GlobalBestFitness { get; set; } = double.MaxValue;
 
     // История выполнения
-    public List<double> GlobalBestFitnessHistory { get; private set; } = new();
-    public List<double> AverageFitnessHistory { get; private set; } = new();
-    public List<Solution> IterationBestSolutions { get; private set; } = new();
+    private List<double> GlobalBestFitnessHistory { get; set; } = new();
+    private List<double> AverageFitnessHistory { get; set; } = new();
+    private List<Solution> IterationBestSolutions { get; set; } = new();
 
     // Вспомогательные объекты
     private readonly ProblemInstance _instance;
@@ -41,20 +37,24 @@ public class PSOAlgorithm
     private int _noImprovementCount;
 
     // События для визуализации
-    public event EventHandler<IterationCompletedEventArgs> IterationCompleted;
-    public event EventHandler<AlgorithmCompletedEventArgs> AlgorithmCompleted;
+    public event EventHandler<IterationCompletedEventArgs>? IterationCompleted;
+    public event EventHandler<AlgorithmCompletedEventArgs>? AlgorithmCompleted;
 
-    public PSOAlgorithm(ProblemInstance instance, int? randomSeed = null)
+    public PsoAlgorithm(ProblemInstance instance, int? randomSeed = null)
     {
-        _instance = instance;
+        _instance = instance ?? throw new ArgumentNullException(nameof(instance));
         _scheduler = new Scheduler(instance);
         _random = randomSeed.HasValue ? new Random(randomSeed.Value) : new Random();
+        Swarm = new List<Particle>();
+        GlobalBestPosition = new Dictionary<int, int>();
+        IterationCompleted = null;
+        AlgorithmCompleted = null;
     }
 
     /// <summary>
     /// Запускает выполнение алгоритма
     /// </summary>
-    public async Task<Solution> RunAsync(IProgress<AlgorithmProgress> progress = null)
+    public async Task<Solution?> RunAsync(IProgress<AlgorithmProgress>? progress = null)
     {
         Start();
 
@@ -76,7 +76,7 @@ public class PSOAlgorithm
         _isInitialized = true;
     }
 
-    public async Task<Solution> StepAsync(IProgress<AlgorithmProgress> progress = null)
+    public async Task<Solution?> StepAsync(IProgress<AlgorithmProgress>? progress = null)
     {
         if (!_isInitialized)
         {
@@ -95,9 +95,9 @@ public class PSOAlgorithm
 
         UpdateParticles(solutions);
         UpdateSwarm();
-        SaveIterationHistory(_iteration);
+        SaveIterationHistory();
 
-        if (GlobalBestFitness < GlobalBestFitnessHistory.LastOrDefault(double.MaxValue))
+        if (GlobalBestFitness < (GlobalBestFitnessHistory.LastOrDefault(double.MaxValue)))
         {
             _noImprovementCount = 0;
         }
@@ -110,7 +110,7 @@ public class PSOAlgorithm
         {
             Iteration = _iteration,
             BestFitness = GlobalBestFitness,
-            AverageFitness = AverageFitnessHistory.Last(),
+            AverageFitness = AverageFitnessHistory.LastOrDefault(),
             IsComplete = false
         });
 
@@ -119,7 +119,7 @@ public class PSOAlgorithm
             Iteration = _iteration,
             BestSolution = GlobalBestSolution,
             BestFitness = GlobalBestFitness,
-            AverageFitness = AverageFitnessHistory.Last()
+            AverageFitness = AverageFitnessHistory.LastOrDefault()
         });
 
         await System.Threading.Tasks.Task.Delay(10);
@@ -178,7 +178,7 @@ public class PSOAlgorithm
         });
     }
 
-    private void SaveIterationHistory(int iteration)
+    private void SaveIterationHistory()
     {
         // Сохраняем лучшее фитнес-значение
         GlobalBestFitnessHistory.Add(GlobalBestFitness);
@@ -199,10 +199,10 @@ public class PSOAlgorithm
     /// <summary>
     /// Сбрасывает состояние алгоритма для нового запуска
     /// </summary>
-    public void Reset()
+    private void Reset()
     {
-        Swarm = null;
-        GlobalBestPosition = null;
+        Swarm = null!;
+        GlobalBestPosition = null!;
         GlobalBestSolution = null;
         GlobalBestFitness = double.MaxValue;
         GlobalBestFitnessHistory.Clear();
@@ -214,7 +214,7 @@ public class PSOAlgorithm
         _noImprovementCount = 0;
     }
 
-    private void Finish(IProgress<AlgorithmProgress> progress)
+    private void Finish(IProgress<AlgorithmProgress>? progress)
     {
         _stopwatch?.Stop();
 
@@ -288,10 +288,10 @@ public class PSOAlgorithm
 /// </summary>
 public class IterationCompletedEventArgs : EventArgs
 {
-    public int Iteration { get; set; }
-    public Solution BestSolution { get; set; }
-    public double BestFitness { get; set; }
-    public double AverageFitness { get; set; }
+    public int Iteration { get; init; }
+    public Solution? BestSolution { get; init; }
+    public double BestFitness { get; init; }
+    public double AverageFitness { get; init; }
 }
 
 /// <summary>
@@ -299,9 +299,9 @@ public class IterationCompletedEventArgs : EventArgs
 /// </summary>
 public class AlgorithmCompletedEventArgs : EventArgs
 {
-    public Solution BestSolution { get; set; }
-    public int TotalIterations { get; set; }
-    public TimeSpan ComputationTime { get; set; }
+    public Solution? BestSolution { get; init; }
+    public int TotalIterations { get; init; }
+    public TimeSpan ComputationTime { get; init; }
 }
 
 /// <summary>
@@ -309,8 +309,8 @@ public class AlgorithmCompletedEventArgs : EventArgs
 /// </summary>
 public class AlgorithmProgress
 {
-    public int Iteration { get; set; }
-    public double BestFitness { get; set; }
-    public double AverageFitness { get; set; }
-    public bool IsComplete { get; set; }
+    public int Iteration { get; init; }
+    public double BestFitness { get; init; }
+    public double AverageFitness { get; init; }
+    public bool IsComplete { get; init; }
 }

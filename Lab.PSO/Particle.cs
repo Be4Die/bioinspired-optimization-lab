@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Lab.PSO;
 
 /// <summary>
@@ -20,27 +16,27 @@ public class Particle
     /// <summary>
     /// Скорость частицы (вероятность изменения назначения)
     /// </summary>
-    public Dictionary<int, double> Velocity { get; set; }
+    private Dictionary<int, double> Velocity { get; set; }
 
     /// <summary>
     /// Лучшая позиция, найденная частицей
     /// </summary>
-    public Dictionary<int, int> BestPosition { get; set; }
+    private Dictionary<int, int> BestPosition { get; set; }
 
     /// <summary>
     /// Фитнес-значение лучшей позиции
     /// </summary>
-    public double BestFitness { get; set; } = double.MaxValue;
+    private double BestFitness { get; set; } = double.MaxValue;
 
     /// <summary>
     /// Текущее решение
     /// </summary>
-    public Solution CurrentSolution { get; set; }
+    public Solution? CurrentSolution { get; private set; }
 
     /// <summary>
     /// Лучшее решение, найденное частицей
     /// </summary>
-    public Solution BestSolution { get; set; }
+    public Solution? BestSolution { get; private set; }
 
     public Particle(ProblemInstance instance, Random random)
     {

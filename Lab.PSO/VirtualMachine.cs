@@ -10,17 +10,17 @@ public class VirtualMachine
     /// <summary>
     /// Уникальный идентификатор виртуальной машины
     /// </summary>
-    public int Id { get; set; }
+    public int Id { get; init; }
 
     /// <summary>
     /// Производительность (единиц вычислений в единицу времени)
     /// </summary>
-    public double Performance { get; set; }
+    public double Performance { get; init; }
 
     /// <summary>
     /// Доступный объем памяти
     /// </summary>
-    public double AvailableMemory { get; set; }
+    public double AvailableMemory { get; init; }
 
     /// <summary>
     /// Список задач, назначенных на эту машину

@@ -1,28 +1,18 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
 namespace Lab.PSO;
 
 /// <summary>
 /// Планировщик для вычисления времени выполнения и проверки ограничений
 /// </summary>
-public class Scheduler
+public class Scheduler(ProblemInstance instance)
 {
-    private readonly ProblemInstance _instance;
-
-    public Scheduler(ProblemInstance instance)
-    {
-        _instance = instance;
-    }
+    private readonly ProblemInstance _instance = instance;
 
     /// <summary>
     /// Вычисляет расписание для заданного назначения
     /// </summary>
     /// <param name="assignment">Назначение задач на машины</param>
     /// <returns>Решение с вычисленным расписанием</returns>
-    public Solution CalculateSchedule(Dictionary<int, int> assignment)
+    private Solution CalculateSchedule(Dictionary<int, int> assignment)
     {
         var solution = new Solution
         {
@@ -35,7 +25,7 @@ public class Scheduler
             Id = t.Id,
             ComputationVolume = t.ComputationVolume,
             MemoryRequirement = t.MemoryRequirement,
-            PredecessorIds = new List<int>(t.PredecessorIds)
+            PredecessorIds = [.. t.PredecessorIds]
         }).ToDictionary(t => t.Id);
 
         var machines = _instance.VirtualMachines.Values.Select(m => new VirtualMachine
@@ -48,11 +38,8 @@ public class Scheduler
         // Назначаем задачи на машины
         foreach (var (taskId, machineId) in assignment)
         {
-            if (tasks.ContainsKey(taskId) && machines.ContainsKey(machineId))
+            if (tasks.TryGetValue(taskId, out var task) && machines.TryGetValue(machineId, out var machine))
             {
-                var task = tasks[taskId];
-                var machine = machines[machineId];
-
                 task.AssignedMachineId = machineId;
                 machine.AssignedTasks.Add(task);
             }
@@ -63,15 +50,7 @@ public class Scheduler
         solution.TotalPenalty = penalties.totalPenalty;
 
         // Планируем выполнение задач
-        if (penalties.hardConstraintViolated)
-        {
-            // Если есть нарушения жестких ограничений, задаем большое значение makespan
-            solution.Makespan = double.MaxValue;
-        }
-        else
-        {
-            solution.Makespan = ScheduleTasks(tasks, machines);
-        }
+        solution.Makespan = penalties.hardConstraintViolated ? double.MaxValue : ScheduleTasks(tasks, machines);
 
         // Сохраняем запланированные задачи и машины
         solution.ScheduledTasks = tasks;
@@ -101,7 +80,7 @@ public class Scheduler
         return solutions;
     }
 
-    private (double totalPenalty, bool hardConstraintViolated) CalculatePenalties(
+    private static (double totalPenalty, bool hardConstraintViolated) CalculatePenalties(
         Dictionary<int, int> assignment,
         Dictionary<int, Task> tasks,
         Dictionary<int, VirtualMachine> machines)
@@ -118,7 +97,7 @@ public class Scheduler
             if (!machine.HasSufficientMemory(task.MemoryRequirement))
             {
                 double memoryDeficit = task.MemoryRequirement - machine.AvailableMemory;
-                totalPenalty += memoryDeficit * _instance.MemoryPenaltyCoefficient;
+                totalPenalty += memoryDeficit * 1000.0;
                 hardConstraintViolated = true;
             }
         }
@@ -126,7 +105,7 @@ public class Scheduler
         return (totalPenalty, hardConstraintViolated);
     }
 
-    private double ScheduleTasks(Dictionary<int, Task> tasks, Dictionary<int, VirtualMachine> machines)
+    private static double ScheduleTasks(Dictionary<int, Task> tasks, Dictionary<int, VirtualMachine> machines)
     {
         // Алгоритм спискового расписания с учетом предшествования
 

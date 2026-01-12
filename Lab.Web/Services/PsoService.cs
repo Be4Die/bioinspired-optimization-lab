@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Lab.PSO;
 using Microsoft.JSInterop;
 
@@ -9,34 +6,34 @@ namespace Lab.Web.Services;
 /// <summary>
 /// Сервис для работы с алгоритмом PSO
 /// </summary>
-public class PSOService : IAsyncDisposable
+public class PsoService : IAsyncDisposable
 {
     private readonly IJSRuntime _jsRuntime;
-    private PSOAlgorithm _algorithm;
-    private ProblemInstance _currentInstance;
-    private Solution _currentSolution;
-    private VisualizationData _visualizationData;
+    private PsoAlgorithm? _algorithm;
+    private ProblemInstance? _currentInstance;
+    private Solution? _currentSolution;
+    private VisualizationData? _visualizationData;
     private IProgress<AlgorithmProgress>? _progress;
     private bool _isStepMode;
 
-    public event EventHandler<AlgorithmProgress> OnProgressChanged;
-    public event EventHandler<Solution> OnSolutionFound;
-    public event EventHandler<VisualizationData> OnVisualizationDataUpdated;
+    public event EventHandler<AlgorithmProgress>? OnProgressChanged;
+    public event EventHandler<Solution>? OnSolutionFound;
+    public event EventHandler<VisualizationData>? OnVisualizationDataUpdated;
 
     /// <summary>
     /// Текущий экземпляр задачи
     /// </summary>
-    public ProblemInstance CurrentInstance => _currentInstance;
+    public ProblemInstance? CurrentInstance => _currentInstance;
 
     /// <summary>
     /// Текущее решение
     /// </summary>
-    public Solution CurrentSolution => _currentSolution;
+    public Solution? CurrentSolution => _currentSolution;
 
     /// <summary>
     /// Текущие данные визуализации
     /// </summary>
-    public VisualizationData VisualizationData => _visualizationData;
+    public VisualizationData? VisualizationData => _visualizationData;
 
     /// <summary>
     /// Статус выполнения алгоритма
@@ -46,9 +43,9 @@ public class PSOService : IAsyncDisposable
     /// <summary>
     /// История прогресса
     /// </summary>
-    public List<AlgorithmProgress> ProgressHistory { get; private set; } = new();
+    private List<AlgorithmProgress> ProgressHistory { get; set; } = new();
 
-    public PSOService(IJSRuntime jsRuntime)
+    public PsoService(IJSRuntime jsRuntime)
     {
         _jsRuntime = jsRuntime;
     }
@@ -57,7 +54,7 @@ public class PSOService : IAsyncDisposable
     /// Инициализирует случайный экземпляр задачи
     /// </summary>
     public void InitializeRandomInstance(int taskCount, int machineCount, int? seed = null, 
-        TaskGenerationConfig generationConfig = null)
+        TaskGenerationConfig? generationConfig = null)
     {
         generationConfig ??= new TaskGenerationConfig();
         _currentInstance = ProblemInstance.CreateRandomInstance(taskCount, machineCount, 
@@ -72,7 +69,7 @@ public class PSOService : IAsyncDisposable
     /// <summary>
     /// Запускает алгоритм с текущими параметрами
     /// </summary>
-    public async System.Threading.Tasks.Task RunAlgorithmAsync(PSOConfiguration configuration)
+    public async System.Threading.Tasks.Task RunAlgorithmAsync(PsoConfiguration configuration)
     {
         if (_currentInstance == null)
         {
@@ -91,7 +88,7 @@ public class PSOService : IAsyncDisposable
             DetachAlgorithmEvents();
 
             // Создаем алгоритм с заданными параметрами
-            _algorithm = new PSOAlgorithm(_currentInstance, configuration.RandomSeed)
+            _algorithm = new PsoAlgorithm(_currentInstance, configuration.RandomSeed)
             {
                 SwarmSize = configuration.SwarmSize,
                 MaxIterations = configuration.MaxIterations,
@@ -135,7 +132,7 @@ public class PSOService : IAsyncDisposable
                           && _algorithm != null
                           && !_algorithm.IsComplete;
 
-    public async System.Threading.Tasks.Task StartStepModeAsync(PSOConfiguration configuration)
+    public async System.Threading.Tasks.Task StartStepModeAsync(PsoConfiguration configuration)
     {
         if (_currentInstance == null)
         {
@@ -154,7 +151,7 @@ public class PSOService : IAsyncDisposable
         {
             DetachAlgorithmEvents();
 
-            _algorithm = new PSOAlgorithm(_currentInstance, configuration.RandomSeed)
+            _algorithm = new PsoAlgorithm(_currentInstance, configuration.RandomSeed)
             {
                 SwarmSize = configuration.SwarmSize,
                 MaxIterations = configuration.MaxIterations,
@@ -195,7 +192,7 @@ public class PSOService : IAsyncDisposable
 
         try
         {
-            await _algorithm.StepAsync(_progress);
+            await _algorithm!.StepAsync(_progress);
 
             if (_algorithm.IsComplete)
             {
@@ -257,7 +254,7 @@ public class PSOService : IAsyncDisposable
     /// <summary>
     /// Экспортирует текущее решение в JSON
     /// </summary>
-    public async Task<string> ExportSolutionAsync()
+    public async Task<string?> ExportSolutionAsync()
     {
         if (_currentSolution == null)
             return null;
@@ -304,7 +301,7 @@ public class PSOService : IAsyncDisposable
         }
     }
 
-    private void HandleIterationCompleted(object sender, IterationCompletedEventArgs e)
+    private void HandleIterationCompleted(object? sender, IterationCompletedEventArgs e)
     {
         // Обновляем визуализацию при каждой итерации
         if (_currentInstance != null && e.BestSolution != null)
@@ -314,9 +311,12 @@ public class PSOService : IAsyncDisposable
         }
     }
 
-    private void HandleAlgorithmCompleted(object sender, AlgorithmCompletedEventArgs e)
+    private void HandleAlgorithmCompleted(object? sender, AlgorithmCompletedEventArgs e)
     {
-        OnSolutionFound?.Invoke(this, e.BestSolution);
+        if (e.BestSolution != null)
+        {
+            OnSolutionFound?.Invoke(this, e.BestSolution);
+        }
     }
 
     private void NotifyStateChanged()
@@ -348,13 +348,14 @@ public class PSOService : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         DetachAlgorithmEvents();
+        await System.Threading.Tasks.Task.CompletedTask;
     }
 }
 
 /// <summary>
 /// Конфигурация алгоритма PSO
 /// </summary>
-public class PSOConfiguration
+public class PsoConfiguration
 {
     public int SwarmSize { get; set; } = 50;
     public int MaxIterations { get; set; } = 500;
@@ -364,7 +365,7 @@ public class PSOConfiguration
     public int NoImprovementLimit { get; set; } = 50;
     public int? RandomSeed { get; set; }
 
-    public static PSOConfiguration Default => new();
+    public static PsoConfiguration Default => new();
 }
 
 /// <summary>

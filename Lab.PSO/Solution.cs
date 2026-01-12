@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json.Serialization;
 
 namespace Lab.PSO;
@@ -13,7 +10,7 @@ public class Solution
     /// <summary>
     /// Вектор назначений: индекс - ID задачи, значение - ID машины
     /// </summary>
-    public Dictionary<int, int> Assignment { get; set; } = new();
+    public Dictionary<int, int> Assignment { get; init; } = new();
 
     /// <summary>
     /// Общее время выполнения (makespan)
@@ -69,22 +66,24 @@ public class Solution
             Assignment = new Dictionary<int, int>(Assignment),
             Makespan = Makespan,
             TotalPenalty = TotalPenalty,
-            FitnessHistory = new List<double>(FitnessHistory),
+            FitnessHistory = [.. FitnessHistory],
             ComputationTime = ComputationTime,
             IterationFound = IterationFound,
-            ScheduledTasks = ScheduledTasks?.ToDictionary(kvp => kvp.Key,
+            ScheduledTasks = ScheduledTasks.ToDictionary(
+                kvp => kvp.Key,
                 kvp => new Task
                 {
                     Id = kvp.Value.Id,
                     ComputationVolume = kvp.Value.ComputationVolume,
                     MemoryRequirement = kvp.Value.MemoryRequirement,
-                    PredecessorIds = new List<int>(kvp.Value.PredecessorIds),
+                    PredecessorIds = [.. kvp.Value.PredecessorIds],
                     StartTime = kvp.Value.StartTime,
                     CompletionTime = kvp.Value.CompletionTime,
                     AssignedMachineId = kvp.Value.AssignedMachineId,
                     IsReady = kvp.Value.IsReady
                 }),
-            ScheduledMachines = ScheduledMachines?.ToDictionary(kvp => kvp.Key,
+            ScheduledMachines = ScheduledMachines.ToDictionary(
+                kvp => kvp.Key,
                 kvp => new VirtualMachine
                 {
                     Id = kvp.Value.Id,
@@ -98,7 +97,7 @@ public class Solution
                         StartTime = t.StartTime,
                         CompletionTime = t.CompletionTime,
                         AssignedMachineId = t.AssignedMachineId
-                    }).ToList(),
+                    }).ToList() ?? [],
                     LastCompletionTime = kvp.Value.LastCompletionTime
                 })
         };

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Lab.PSO;
 
 /// <summary>
@@ -38,7 +34,7 @@ public class ProblemInstance
     /// <param name="generationConfig">Конфигурация генерации задач и машин</param>
     /// <returns>Случайный экземпляр задачи</returns>
     public static ProblemInstance CreateRandomInstance(int taskCount, int machineCount, int seed = 42, 
-        TaskGenerationConfig generationConfig = null)
+        TaskGenerationConfig? generationConfig = null)
     {
         generationConfig ??= new TaskGenerationConfig();
         var random = new Random(seed);
@@ -136,17 +132,17 @@ public class ProblemInstance
 public class TaskGenerationConfig
 {
     // Параметры задач
-    public int MinComputationVolume { get; set; } = 10;
-    public int MaxComputationVolume { get; set; } = 100;
-    public int MinMemoryRequirement { get; set; } = 1;
-    public int MaxMemoryRequirement { get; set; } = 20;
-    public int MaxPredecessors { get; set; } = 3;
+    public int MinComputationVolume { get; init; } = 10;
+    public int MaxComputationVolume { get; init; } = 100;
+    public int MinMemoryRequirement { get; init; } = 1;
+    public int MaxMemoryRequirement { get; init; } = 20;
+    public int MaxPredecessors { get; init; } = 3;
 
     // Параметры машин
-    public int MinMachinePerformance { get; set; } = 5;
-    public int MaxMachinePerformance { get; set; } = 25;
-    public int MinMachineMemory { get; set; } = 10;
-    public int MaxMachineMemory { get; set; } = 30;
+    public int MinMachinePerformance { get; init; } = 5;
+    public int MaxMachinePerformance { get; init; } = 25;
+    public int MinMachineMemory { get; init; } = 10;
+    public int MaxMachineMemory { get; init; } = 30;
 
     // Валидация
     public bool Validate()

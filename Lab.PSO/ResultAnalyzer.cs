@@ -8,11 +8,11 @@ public class ResultAnalyzer
     /// <summary>
     /// Анализирует качество решения
     /// </summary>
-    public static AnalysisResult Analyze(Solution solution, ProblemInstance instance)
+    public static AnalysisResult Analyze(Solution? solution, ProblemInstance instance)
     {
         var result = new AnalysisResult();
 
-        if (solution == null || solution.ScheduledTasks == null)
+        if (solution?.ScheduledTasks == null)
             return result;
 
         // Основные метрики
@@ -46,14 +46,12 @@ public class ResultAnalyzer
         {
             double totalWorkTime = 0;
 
-            if (solution.ScheduledMachines.ContainsKey(machine.Id))
+            if (solution.ScheduledMachines.TryGetValue(machine.Id, out var scheduledMachine))
             {
-                var scheduledMachine = solution.ScheduledMachines[machine.Id];
                 totalWorkTime = scheduledMachine.LastCompletionTime;
             }
 
             // Время простоя = makespan - время работы
-            double idleTime = solution.Makespan - totalWorkTime;
             double utilizationRate = (solution.Makespan > 0) ? totalWorkTime / solution.Makespan : 0;
 
             utilization[machine.Id] = utilizationRate;
@@ -70,9 +68,8 @@ public class ResultAnalyzer
         {
             double totalMemoryUsed = 0;
 
-            if (solution.ScheduledMachines.ContainsKey(machine.Id))
+            if (solution.ScheduledMachines.TryGetValue(machine.Id, out var scheduledMachine))
             {
-                var scheduledMachine = solution.ScheduledMachines[machine.Id];
                 totalMemoryUsed = scheduledMachine.AssignedTasks.Sum(t => t.MemoryRequirement);
             }
 
@@ -91,9 +88,8 @@ public class ResultAnalyzer
         // Проверка ограничений по памяти
         foreach (var task in instance.Tasks.Values)
         {
-            if (solution.Assignment.ContainsKey(task.Id))
+            if (solution.Assignment.TryGetValue(task.Id, out int machineId))
             {
-                int machineId = solution.Assignment[task.Id];
                 var machine = instance.VirtualMachines[machineId];
 
                 if (!machine.HasSufficientMemory(task.MemoryRequirement))
@@ -120,9 +116,8 @@ public class ResultAnalyzer
         {
             foreach (var predId in task.PredecessorIds)
             {
-                if (solution.ScheduledTasks.ContainsKey(predId))
+                if (solution.ScheduledTasks.TryGetValue(predId, out var predecessor))
                 {
-                    var predecessor = solution.ScheduledTasks[predId];
                     if (predecessor.CompletionTime > task.StartTime)
                     {
                         violations.Add(task.Id);

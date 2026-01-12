@@ -26,7 +26,7 @@ public static class Extensions
     /// <summary>
     /// Десериализует JSON строку в объект
     /// </summary>
-    public static T FromJson<T>(this string json)
+    public static T? FromJson<T>(this string json)
     {
         return JsonSerializer.Deserialize<T>(json);
     }
@@ -78,7 +78,7 @@ public static class Extensions
     /// <summary>
     /// Перемешивает список с использованием алгоритма Фишера-Йетса
     /// </summary>
-    public static List<T> Shuffle<T>(this IList<T> list, Random random = null)
+    public static List<T> Shuffle<T>(this IList<T> list, Random? random = null)
     {
         random ??= new Random();
         var shuffled = new List<T>(list);

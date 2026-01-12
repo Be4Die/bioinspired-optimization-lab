@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Lab.PSO;
 
 /// <summary>
@@ -26,7 +23,7 @@ public class VisualizationData
     /// <summary>
     /// Данные для тепловой карты утилизации ресурсов
     /// </summary>
-    public HeatmapData ResourceHeatmap { get; set; } = new();
+    public HeatmapData ResourceHeatmap { get; private set; } = new();
 
     /// <summary>
     /// Сводная информация о решении
@@ -36,11 +33,11 @@ public class VisualizationData
     /// <summary>
     /// Создает данные визуализации из решения
     /// </summary>
-    public static VisualizationData CreateFromSolution(Solution solution, ProblemInstance instance)
+    public static VisualizationData CreateFromSolution(Solution? solution, ProblemInstance? instance)
     {
         var data = new VisualizationData();
 
-        if (solution == null)
+        if (solution == null || instance == null)
             return data;
 
         // График сходимости
@@ -126,9 +123,8 @@ public class VisualizationData
             {
                 data.MachineIds.Add(machine.Id);
 
-                if (solution.ScheduledMachines.ContainsKey(machine.Id))
+                if (solution.ScheduledMachines.TryGetValue(machine.Id, out var scheduledMachine))
                 {
-                    var scheduledMachine = solution.ScheduledMachines[machine.Id];
                     double utilization = scheduledMachine.LastCompletionTime / solution.Makespan;
                     data.UtilizationValues.Add(utilization);
                 }
@@ -207,18 +203,18 @@ public class HeatmapData
 /// </summary>
 public class SolutionSummary
 {
-    public double Makespan { get; set; }
-    public double TotalPenalty { get; set; }
-    public double Fitness { get; set; }
-    public bool IsFeasible { get; set; }
-    public int MachineCount { get; set; }
-    public int TaskCount { get; set; }
-    public System.TimeSpan ComputationTime { get; set; }
-    public int IterationFound { get; set; }
-    public double QualityScore { get; set; }
-    public double AverageMachineUtilization { get; set; }
-    public int MemoryViolations { get; set; }
-    public int PrecedenceViolations { get; set; }
+    public double Makespan { get; init; }
+    public double TotalPenalty { get; init; }
+    public double Fitness { get; init; }
+    public bool IsFeasible { get; init; }
+    public int MachineCount { get; init; }
+    public int TaskCount { get; init; }
+    public TimeSpan ComputationTime { get; init; }
+    public int IterationFound { get; init; }
+    public double QualityScore { get; init; }
+    public double AverageMachineUtilization { get; init; }
+    public int MemoryViolations { get; init; }
+    public int PrecedenceViolations { get; init; }
 
     public override string ToString()
     {

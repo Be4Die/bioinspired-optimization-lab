@@ -10,22 +10,22 @@ public class Task
     /// <summary>
     /// Уникальный идентификатор задачи
     /// </summary>
-    public int Id { get; set; }
+    public int Id { get; init; }
 
     /// <summary>
     /// Объем вычислений (в условных единицах)
     /// </summary>
-    public double ComputationVolume { get; set; }
+    public double ComputationVolume { get; init; }
 
     /// <summary>
     /// Требуемый объем памяти
     /// </summary>
-    public double MemoryRequirement { get; set; }
+    public double MemoryRequirement { get; init; }
 
     /// <summary>
     /// Идентификаторы непосредственных предшественников
     /// </summary>
-    public List<int> PredecessorIds { get; set; } = new();
+    public List<int> PredecessorIds { get; init; } = new();
 
     /// <summary>
     /// Момент начала выполнения (рассчитывается при планировании)
@@ -63,7 +63,7 @@ public class Task
                 
         foreach (var predId in PredecessorIds)
         {
-            if (!tasks.ContainsKey(predId) || tasks[predId].CompletionTime <= 0)
+            if (!tasks.TryGetValue(predId, out var predecessor) || predecessor.CompletionTime <= 0)
                 return false;
         }
         return true;
@@ -82,9 +82,9 @@ public class Task
         double maxTime = 0;
         foreach (var predId in PredecessorIds)
         {
-            if (tasks.ContainsKey(predId))
+            if (tasks.TryGetValue(predId, out var predecessor))
             {
-                maxTime = Math.Max(maxTime, tasks[predId].CompletionTime);
+                maxTime = Math.Max(maxTime, predecessor.CompletionTime);
             }
         }
         return maxTime;
