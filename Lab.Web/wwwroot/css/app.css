@@ -86,3 +86,113 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.bipartite-diagram-host {
+    width: 100%;
+    height: 420px;
+}
+
+@media (min-width: 960px) {
+    .bipartite-diagram-host {
+        height: 520px;
+    }
+}
+
+.diagram-container,
+.diagram-svg-layer,
+.diagram-html-layer {
+    touch-action: pan-x pan-y;
+}
+
+.bipartite-node {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #0d1b2a;
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    border: 1px solid rgba(25, 118, 210, 0.4);
+    box-shadow: 0 4px 10px rgba(25, 118, 210, 0.15);
+    backdrop-filter: blur(6px);
+}
+
+.mud-theme-dark .bipartite-node {
+    color: #e3f2fd;
+    background: linear-gradient(135deg, rgba(13, 71, 161, 0.86), rgba(21, 101, 192, 0.92));
+    border-color: rgba(187, 222, 251, 0.45);
+    box-shadow: 0 6px 18px rgba(3, 155, 229, 0.22);
+}
+
+.bipartite-node.left {
+    background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+    border-color: rgba(123, 31, 162, 0.4);
+}
+
+.mud-theme-dark .bipartite-node.left {
+    background: linear-gradient(135deg, rgba(74, 20, 140, 0.95), rgba(123, 31, 162, 0.96));
+    border-color: rgba(225, 190, 231, 0.55);
+}
+
+.bipartite-node.right {
+    background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+    border-color: rgba(46, 125, 50, 0.4);
+}
+
+.mud-theme-dark .bipartite-node.right {
+    background: linear-gradient(135deg, rgba(27, 94, 32, 0.96), rgba(46, 125, 50, 0.98));
+    border-color: rgba(200, 230, 201, 0.55);
+}
+
+.bipartite-node.selected {
+    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.8), 0 0 20px rgba(255, 214, 0, 0.5);
+}
+
+.bipartite-node-title {
+    white-space: nowrap;
+}
+
+.bipartite-port {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    background-color: #0288d1;
+}
+
+.bipartite-port.right {
+    box-shadow: 0 0 0 2px rgba(2, 136, 209, 0.35);
+}
+
+.bipartite-port.left {
+    background-color: #7b1fa2;
+    box-shadow: 0 0 0 2px rgba(123, 31, 162, 0.35);
+}
+
+.mud-theme-dark .bipartite-port {
+    border-color: rgba(250, 250, 250, 0.95);
+}
+
+.bipartite-particles .bipartite-particle {
+    filter: drop-shadow(0 0 4px rgba(0, 188, 212, 0.7));
+}
+
+.mud-theme-dark .bipartite-particles .bipartite-particle {
+    filter: drop-shadow(0 0 5px rgba(224, 247, 250, 0.95));
+}
+
+.bipartite-diagram-host .diagram-link path {
+    stroke: rgba(30, 136, 229, 0.7);
+    stroke-width: 2.2px;
+}
+
+.mud-theme-dark .bipartite-diagram-host .diagram-link path {
+    stroke: rgba(144, 202, 249, 0.75);
+}
+
+.bipartite-diagram-host .diagram-link.selected path {
+    stroke: rgba(255, 193, 7, 0.95);
+    stroke-width: 3.2px;
+}

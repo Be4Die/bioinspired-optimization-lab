@@ -1,0 +1,466 @@
+@using System.Globalization
+@using System.Threading
+@using Blazor.Diagrams.Core.Anchors
+@using Blazor.Diagrams.Core.Models.Base
+@using Blazor.Diagrams.Core.Geometry
+@using Size = Blazor.Diagrams.Core.Geometry.Size
+
+@implements IAsyncDisposable
+
+<MudGrid Spacing="2">
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.h6" Class="mb-2">Двудольный граф</MudText>
+            <MudText Typo="Typo.body2" Class="mb-4">
+                Слева задачи, справа машины. Частицы движутся по ребрам назначений.
+            </MudText>
+
+            <MudSwitch @bind-Value="_settings.Animate"
+                       @bind-Value:after="HandleAnimateChanged"
+                       Color="Color.Primary"
+                       Label="Анимация"
+                       Class="mb-2" />
+            <MudSwitch @bind-Value="_settings.ShowPorts"
+                       @bind-Value:after="HandleShowPortsChanged"
+                       Color="Color.Primary"
+                       Label="Порты"
+                       Class="mb-4" />
+
+            <MudSlider @bind-Value="_settings.ParticlesPerEdge"
+                       @bind-Value:after="HandleParticlesPerEdgeChanged"
+                       Min="0" Max="6" Step="1"
+                       Color="Color.Primary"
+                       ValueLabel="true"
+                       Class="mb-4">
+                Частиц на ребро
+            </MudSlider>
+
+            <MudSlider @bind-Value="_settings.Speed"
+                       @bind-Value:after="HandleSettingsRenderChanged"
+                       Min="20" Max="400" Step="10"
+                       Color="Color.Primary"
+                       ValueLabel="true"
+                       Class="mb-4">
+                Скорость
+            </MudSlider>
+
+            <MudSlider @bind-Value="_settings.Radius"
+                       @bind-Value:after="HandleSettingsRenderChanged"
+                       Min="1" Max="10" Step="1"
+                       Color="Color.Primary"
+                       ValueLabel="true"
+                       Class="mb-4">
+                Размер частиц
+            </MudSlider>
+
+            <MudColorPicker Value="@_settings.Color"
+                            ValueChanged="@(color => { _settings.Color = color.ToString(); HandleSettingsRenderChanged(); })"
+                            DisableAlpha="true"
+                            Class="mb-4" />
+
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="Relayout">
+                Переразложить
+            </MudButton>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="8">
+        <MudPaper Class="pa-2" Elevation="1">
+            <div class="bipartite-diagram-host">
+                <CascadingValue Value="_diagram" IsFixed="true">
+                    <DiagramCanvas AdditionalSvg="@_particlesSvg">
+                        <Widgets>
+                            <SelectionBoxWidget />
+                            <ZoomWidget />
+                            <NavigatorWidget Width="220" Height="140" Class="absolute bottom-2 right-2" />
+                        </Widgets>
+                    </DiagramCanvas>
+                </CascadingValue>
+            </div>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public Lab.PSO.ProblemInstance? Instance { get; set; }
+    [Parameter] public Lab.PSO.Solution? Solution { get; set; }
+
+    private BlazorDiagram _diagram = null!;
+    private readonly Dictionary<int, NodeModel> _taskNodes = new();
+    private readonly Dictionary<int, NodeModel> _machineNodes = new();
+    private readonly List<EdgeRef> _edges = new();
+
+    private readonly VisualSettings _settings = new();
+
+    private Lab.PSO.ProblemInstance? _builtForInstance;
+    private bool _builtForPorts;
+
+    private CancellationTokenSource? _animationCts;
+    private Task? _animationTask;
+    private DateTime _lastTickUtc;
+
+    private RenderFragment? _particlesSvg => builder =>
+    {
+        builder.OpenElement(0, "g");
+        builder.AddAttribute(1, "class", "bipartite-particles");
+
+        if (!_settings.Animate || _settings.ParticlesPerEdge <= 0)
+        {
+            builder.CloseElement();
+            return;
+        }
+
+        var seq = 10;
+        foreach (var edge in _edges)
+        {
+            if (!TryGetEndpoints(edge, out var a, out var b))
+                continue;
+
+            var dx = b.X - a.X;
+            var dy = b.Y - a.Y;
+            var len = Math.Sqrt(dx * dx + dy * dy);
+            if (len < 1)
+                continue;
+
+            for (var i = 0; i < edge.Particles.Count; i++)
+            {
+                var t = edge.Particles[i].T;
+                var x = a.X + dx * t;
+                var y = a.Y + dy * t;
+
+                builder.OpenElement(seq++, "circle");
+                builder.AddAttribute(seq++, "class", "bipartite-particle");
+                builder.AddAttribute(seq++, "cx", x.ToString("F2", CultureInfo.InvariantCulture));
+                builder.AddAttribute(seq++, "cy", y.ToString("F2", CultureInfo.InvariantCulture));
+                builder.AddAttribute(seq++, "r", _settings.Radius.ToString(CultureInfo.InvariantCulture));
+                builder.AddAttribute(seq++, "fill", _settings.Color);
+                builder.CloseElement();
+            }
+        }
+
+        builder.CloseElement();
+    };
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        var options = new BlazorDiagramOptions
+        {
+            AllowMultiSelection = true,
+            AllowPanning = true,
+            Zoom =
+            {
+                Enabled = true,
+                Minimum = 0.2,
+                Maximum = 2.2
+            },
+            Links =
+            {
+                DefaultRouter = new NormalRouter(),
+                DefaultPathGenerator = new StraightPathGenerator()
+            }
+        };
+
+        _diagram = new BlazorDiagram(options);
+        _diagram.RegisterComponent<NodeModel, BipartiteNodeWidget>();
+        _diagram.SelectionChanged += HandleSelectionChanged;
+    }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        BuildDiagram();
+        RestartAnimation();
+    }
+
+    private void BuildDiagram(bool forceRebuildNodes = false)
+    {
+        if (Instance == null)
+        {
+            _diagram.Nodes.Clear();
+            _diagram.Links.Clear();
+            _taskNodes.Clear();
+            _machineNodes.Clear();
+            _edges.Clear();
+            _builtForInstance = null;
+            return;
+        }
+
+        var rebuildNodes = forceRebuildNodes
+                           || _builtForInstance != Instance
+                           || _builtForPorts != _settings.ShowPorts
+                           || _taskNodes.Count == 0
+                           || _machineNodes.Count == 0;
+
+        if (rebuildNodes)
+        {
+            _diagram.Nodes.Clear();
+            _taskNodes.Clear();
+            _machineNodes.Clear();
+
+            var tasks = Instance.Tasks.Values.OrderBy(t => t.Id).ToList();
+            var machines = Instance.VirtualMachines.Values.OrderBy(m => m.Id).ToList();
+
+            var nodeWidth = 170d;
+            var nodeHeight = tasks.Count > 40 || machines.Count > 20 ? 34d : 44d;
+            var columnGap = 420d;
+            var leftX = 40d;
+            var rightX = leftX + columnGap;
+            var topY = 40d;
+            var verticalGap = Math.Max(10d, nodeHeight * 0.35);
+
+            for (var i = 0; i < tasks.Count; i++)
+            {
+                var y = topY + i * (nodeHeight + verticalGap);
+                var node = new NodeModel(new Point(leftX, y))
+                {
+                    Title = $"T{tasks[i].Id}",
+                    Size = new Size(nodeWidth, nodeHeight),
+                    Locked = false
+                };
+
+                if (_settings.ShowPorts)
+                    node.AddPort(PortAlignment.Right);
+
+                _diagram.Nodes.Add(node);
+                _taskNodes[tasks[i].Id] = node;
+            }
+
+            for (var i = 0; i < machines.Count; i++)
+            {
+                var y = topY + i * (nodeHeight + verticalGap);
+                var node = new NodeModel(new Point(rightX, y))
+                {
+                    Title = $"VM {machines[i].Id}",
+                    Size = new Size(nodeWidth, nodeHeight),
+                    Locked = false
+                };
+
+                if (_settings.ShowPorts)
+                    node.AddPort(PortAlignment.Left);
+
+                _diagram.Nodes.Add(node);
+                _machineNodes[machines[i].Id] = node;
+            }
+
+            _builtForInstance = Instance;
+            _builtForPorts = _settings.ShowPorts;
+        }
+
+        _diagram.Links.Clear();
+        _edges.Clear();
+
+        var assignment = Solution?.Assignment;
+        if (assignment == null || assignment.Count == 0)
+            return;
+
+        foreach (var (taskId, machineId) in assignment)
+        {
+            if (!_taskNodes.TryGetValue(taskId, out var leftNode))
+                continue;
+            if (!_machineNodes.TryGetValue(machineId, out var rightNode))
+                continue;
+
+            BaseLinkModel link;
+
+            if (_settings.ShowPorts && leftNode.Ports.Count > 0 && rightNode.Ports.Count > 0)
+            {
+                var leftPort = leftNode.Ports[0];
+                var rightPort = rightNode.Ports[0];
+                link = new LinkModel(new SinglePortAnchor(leftPort), new SinglePortAnchor(rightPort));
+            }
+            else
+            {
+                link = new LinkModel(new ShapeIntersectionAnchor(leftNode), new ShapeIntersectionAnchor(rightNode));
+            }
+
+            _diagram.Links.Add(link);
+
+            var edge = new EdgeRef(taskId, machineId, link);
+            edge.ResetParticles(_settings.ParticlesPerEdge);
+            _edges.Add(edge);
+        }
+    }
+
+    private void Relayout()
+    {
+        _builtForInstance = null;
+        BuildDiagram(forceRebuildNodes: true);
+        RestartAnimation();
+        StateHasChanged();
+    }
+
+    private void HandleSelectionChanged(SelectableModel model)
+    {
+        if (model.Selected)
+            StateHasChanged();
+    }
+
+    private void RestartAnimation()
+    {
+        StopAnimation();
+
+        if (!_settings.Animate || _settings.ParticlesPerEdge <= 0 || _edges.Count == 0)
+            return;
+
+        _animationCts = new CancellationTokenSource();
+        _lastTickUtc = DateTime.UtcNow;
+        _animationTask = RunAnimationAsync(_animationCts.Token);
+    }
+
+    private async Task RunAnimationAsync(CancellationToken ct)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(33));
+
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                var now = DateTime.UtcNow;
+                var dt = now - _lastTickUtc;
+                _lastTickUtc = now;
+
+                var dtSeconds = Math.Min(0.2, dt.TotalSeconds);
+                StepParticles(dtSeconds);
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void StepParticles(double dtSeconds)
+    {
+        var speed = _settings.Speed;
+
+        foreach (var edge in _edges)
+        {
+            if (!TryGetEndpoints(edge, out var a, out var b))
+                continue;
+
+            var dx = b.X - a.X;
+            var dy = b.Y - a.Y;
+            var len = Math.Sqrt(dx * dx + dy * dy);
+            if (len < 1)
+                continue;
+
+            var deltaT = (speed * dtSeconds) / len;
+            for (var i = 0; i < edge.Particles.Count; i++)
+            {
+                var p = edge.Particles[i];
+                p.T = (p.T + deltaT) % 1.0;
+            }
+        }
+    }
+
+    private bool TryGetEndpoints(EdgeRef edge, out Point a, out Point b)
+    {
+        a = default;
+        b = default;
+
+        if (!_taskNodes.TryGetValue(edge.TaskId, out var left))
+            return false;
+        if (!_machineNodes.TryGetValue(edge.MachineId, out var right))
+            return false;
+
+        // Исправление: используем Size вместо Width и Height
+        a = new Point(left.Position.X + left.Size.Width, left.Position.Y + left.Size.Height / 2);
+        b = new Point(right.Position.X, right.Position.Y + right.Size.Height / 2);
+        return true;
+    }
+
+    private void StopAnimation()
+    {
+        if (_animationCts == null)
+            return;
+
+        try
+        {
+            _animationCts.Cancel();
+        }
+        finally
+        {
+            _animationCts.Dispose();
+            _animationCts = null;
+            _animationTask = null;
+        }
+    }
+
+    private void HandleAnimateChanged()
+    {
+        RestartAnimation();
+    }
+
+    private void HandleShowPortsChanged()
+    {
+        BuildDiagram(forceRebuildNodes: true);
+        RestartAnimation();
+        StateHasChanged();
+    }
+
+    private void HandleParticlesPerEdgeChanged()
+    {
+        foreach (var edge in _edges)
+            edge.ResetParticles(_settings.ParticlesPerEdge);
+
+        RestartAnimation();
+        StateHasChanged();
+    }
+
+    private void HandleSettingsRenderChanged()
+    {
+        StateHasChanged();
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        StopAnimation();
+        _diagram.SelectionChanged -= HandleSelectionChanged;
+        return ValueTask.CompletedTask;
+    }
+
+    private sealed class VisualSettings
+    {
+        public bool Animate { get; set; } = true;
+        public bool ShowPorts { get; set; } = true;
+        public int ParticlesPerEdge { get; set; } = 2;
+        public double Speed { get; set; } = 160;
+        public double Radius { get; set; } = 4;
+        public string Color { get; set; } = "#00C2FF";
+    }
+
+    private sealed class ParticleState
+    {
+        public double T { get; set; }
+    }
+
+    private sealed class EdgeRef
+    {
+        public EdgeRef(int taskId, int machineId, BaseLinkModel link)
+        {
+            TaskId = taskId;
+            MachineId = machineId;
+            Link = link;
+        }
+
+        public int TaskId { get; }
+        public int MachineId { get; }
+        public BaseLinkModel Link { get; }
+        public List<ParticleState> Particles { get; } = new();
+
+        public void ResetParticles(int count)
+        {
+            Particles.Clear();
+            if (count <= 0)
+                return;
+
+            var step = 1.0 / count;
+            for (var i = 0; i < count; i++)
+            {
+                Particles.Add(new ParticleState { T = i * step });
+            }
+        }
+    }
+}

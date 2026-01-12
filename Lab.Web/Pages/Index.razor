@@ -1,6 +1,7 @@
 @page "/"
 @using Lab.Web.Services
 @using Lab.PSO
+@using Size = MudBlazor.Size
 @using MudBlazor
 @inject PSOService PsoService
 @inject ISnackbar Snackbar
@@ -260,6 +261,13 @@
                 </MudItem>
             </MudGrid>
         </MudPaper>
+    }
+
+    @if (PsoService.CurrentInstance != null)
+    {
+        <div class="mb-4">
+            <BipartiteGraphView Instance="PsoService.CurrentInstance" Solution="PsoService.CurrentSolution" />
+        </div>
     }
 
     <!-- Тепловая карта -->
