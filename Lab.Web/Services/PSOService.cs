@@ -16,6 +16,8 @@ public class PSOService : IAsyncDisposable
     private ProblemInstance _currentInstance;
     private Solution _currentSolution;
     private VisualizationData _visualizationData;
+    private IProgress<AlgorithmProgress>? _progress;
+    private bool _isStepMode;
 
     public event EventHandler<AlgorithmProgress> OnProgressChanged;
     public event EventHandler<Solution> OnSolutionFound;
@@ -74,12 +76,17 @@ public class PSOService : IAsyncDisposable
             throw new InvalidOperationException("Проблема не инициализирована. Сначала создайте экземпляр задачи.");
         }
 
+        _isStepMode = false;
+        _progress = null;
+
         Status = AlgorithmStatus.Running;
         ProgressHistory.Clear();
         NotifyStateChanged();
 
         try
         {
+            DetachAlgorithmEvents();
+
             // Создаем алгоритм с заданными параметрами
             _algorithm = new PSOAlgorithm(_currentInstance, configuration.RandomSeed)
             {
@@ -96,13 +103,13 @@ public class PSOService : IAsyncDisposable
             _algorithm.AlgorithmCompleted += HandleAlgorithmCompleted;
 
             // Запускаем алгоритм
-            var progress = new Progress<AlgorithmProgress>(p =>
+            _progress = new Progress<AlgorithmProgress>(p =>
             {
                 ProgressHistory.Add(p);
                 OnProgressChanged?.Invoke(this, p);
             });
 
-            _currentSolution = await _algorithm.RunAsync(progress);
+            _currentSolution = await _algorithm.RunAsync(_progress);
 
             // Обновляем данные визуализации
             UpdateVisualizationData();
@@ -120,6 +127,92 @@ public class PSOService : IAsyncDisposable
         }
     }
 
+    public bool CanStep => _isStepMode
+                          && Status == AlgorithmStatus.Running
+                          && _algorithm != null
+                          && !_algorithm.IsComplete;
+
+    public async System.Threading.Tasks.Task StartStepModeAsync(PSOConfiguration configuration)
+    {
+        if (_currentInstance == null)
+        {
+            throw new InvalidOperationException("Проблема не инициализирована. Сначала создайте экземпляр задачи.");
+        }
+
+        _isStepMode = true;
+
+        Status = AlgorithmStatus.Running;
+        ProgressHistory.Clear();
+        _currentSolution = null;
+        _visualizationData = null;
+        NotifyStateChanged();
+
+        try
+        {
+            DetachAlgorithmEvents();
+
+            _algorithm = new PSOAlgorithm(_currentInstance, configuration.RandomSeed)
+            {
+                SwarmSize = configuration.SwarmSize,
+                MaxIterations = configuration.MaxIterations,
+                InertiaWeight = configuration.InertiaWeight,
+                CognitiveWeight = configuration.CognitiveWeight,
+                SocialWeight = configuration.SocialWeight,
+                NoImprovementLimit = configuration.NoImprovementLimit
+            };
+
+            _algorithm.IterationCompleted += HandleIterationCompleted;
+            _algorithm.AlgorithmCompleted += HandleAlgorithmCompleted;
+
+            _progress = new Progress<AlgorithmProgress>(p =>
+            {
+                ProgressHistory.Add(p);
+                OnProgressChanged?.Invoke(this, p);
+            });
+
+            _algorithm.Start();
+        }
+        catch (Exception ex)
+        {
+            Status = AlgorithmStatus.Error;
+            await ShowErrorAsync($"Ошибка подготовки пошагового режима: {ex.Message}");
+        }
+        finally
+        {
+            NotifyStateChanged();
+        }
+    }
+
+    public async System.Threading.Tasks.Task StepAsync()
+    {
+        if (!CanStep)
+        {
+            return;
+        }
+
+        try
+        {
+            await _algorithm.StepAsync(_progress);
+
+            if (_algorithm.IsComplete)
+            {
+                _currentSolution = _algorithm.GlobalBestSolution;
+                UpdateVisualizationData();
+                Status = AlgorithmStatus.Completed;
+                _isStepMode = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Status = AlgorithmStatus.Error;
+            await ShowErrorAsync($"Ошибка выполнения шага: {ex.Message}");
+        }
+        finally
+        {
+            NotifyStateChanged();
+        }
+    }
+
     /// <summary>
     /// Останавливает выполнение алгоритма
     /// </summary>
@@ -127,8 +220,14 @@ public class PSOService : IAsyncDisposable
     {
         if (_algorithm != null && Status == AlgorithmStatus.Running)
         {
-            // В текущей реализации алгоритм не поддерживает остановку,
-            // но мы можем изменить его состояние
+            if (_isStepMode)
+            {
+                DetachAlgorithmEvents();
+                _algorithm = null;
+                _progress = null;
+                _isStepMode = false;
+            }
+
             Status = AlgorithmStatus.Stopped;
             NotifyStateChanged();
         }
@@ -139,6 +238,11 @@ public class PSOService : IAsyncDisposable
     /// </summary>
     public void Reset()
     {
+        DetachAlgorithmEvents();
+        _algorithm = null;
+        _progress = null;
+        _isStepMode = false;
+
         _currentSolution = null;
         _visualizationData = null;
         ProgressHistory.Clear();
@@ -227,13 +331,20 @@ public class PSOService : IAsyncDisposable
         await _jsRuntime.InvokeVoidAsync("console.error", message);
     }
 
+    private void DetachAlgorithmEvents()
+    {
+        if (_algorithm == null)
+        {
+            return;
+        }
+
+        _algorithm.IterationCompleted -= HandleIterationCompleted;
+        _algorithm.AlgorithmCompleted -= HandleAlgorithmCompleted;
+    }
+
     public async ValueTask DisposeAsync()
     {
-        if (_algorithm != null)
-        {
-            _algorithm.IterationCompleted -= HandleIterationCompleted;
-            _algorithm.AlgorithmCompleted -= HandleAlgorithmCompleted;
-        }
+        DetachAlgorithmEvents();
     }
 }
 

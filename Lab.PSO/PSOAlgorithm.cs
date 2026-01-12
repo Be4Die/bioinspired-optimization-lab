@@ -35,6 +35,10 @@ public class PSOAlgorithm
     private readonly Scheduler _scheduler;
     private readonly Random _random;
     private readonly object _lockObject = new();
+    private Stopwatch? _stopwatch;
+    private bool _isInitialized;
+    private int _iteration;
+    private int _noImprovementCount;
 
     // События для визуализации
     public event EventHandler<IterationCompletedEventArgs> IterationCompleted;
@@ -52,88 +56,78 @@ public class PSOAlgorithm
     /// </summary>
     public async Task<Solution> RunAsync(IProgress<AlgorithmProgress> progress = null)
     {
-        var stopwatch = Stopwatch.StartNew();
+        Start();
 
-        // Инициализация роя
+        while (!IsComplete)
+        {
+            await StepAsync(progress);
+        }
+
+        return GlobalBestSolution;
+    }
+
+    public bool IsComplete => _isInitialized && (_iteration >= MaxIterations || _noImprovementCount >= NoImprovementLimit);
+
+    public void Start()
+    {
+        Reset();
         InitializeSwarm();
+        _stopwatch = Stopwatch.StartNew();
+        _isInitialized = true;
+    }
 
-        // Основной цикл алгоритма
-        int iteration = 0;
-        int noImprovementCount = 0;
-
-        while (iteration < MaxIterations && noImprovementCount < NoImprovementLimit)
+    public async Task<Solution> StepAsync(IProgress<AlgorithmProgress> progress = null)
+    {
+        if (!_isInitialized)
         {
-            iteration++;
-
-            // Параллельное вычисление фитнес-функции для всех частиц
-            var positions = Swarm.Select(p => p.Position).ToList();
-            var solutions = _scheduler.CalculateSchedulesParallel(positions);
-
-            // Обновление лучших позиций частиц и глобальной лучшей позиции
-            UpdateParticles(solutions);
-
-            // Обновление скоростей и позиций частиц
-            UpdateSwarm();
-
-            // Сохранение истории
-            SaveIterationHistory(iteration);
-
-            // Проверка улучшения
-            if (GlobalBestFitness < GlobalBestFitnessHistory.LastOrDefault(double.MaxValue))
-            {
-                noImprovementCount = 0;
-            }
-            else
-            {
-                noImprovementCount++;
-            }
-
-            // Отчет о прогрессе
-            progress?.Report(new AlgorithmProgress
-            {
-                Iteration = iteration,
-                BestFitness = GlobalBestFitness,
-                AverageFitness = AverageFitnessHistory.Last(),
-                IsComplete = false
-            });
-
-            // Вызов события итерации
-            OnIterationCompleted(new IterationCompletedEventArgs
-            {
-                Iteration = iteration,
-                BestSolution = GlobalBestSolution,
-                BestFitness = GlobalBestFitness,
-                AverageFitness = AverageFitnessHistory.Last()
-            });
-
-            // Небольшая задержка для визуализации (опционально)
-            await System.Threading.Tasks.Task.Delay(10);
+            Start();
         }
 
-        stopwatch.Stop();
-
-        // Завершаем лучшее решение
-        if (GlobalBestSolution != null)
+        if (IsComplete)
         {
-            GlobalBestSolution.ComputationTime = stopwatch.Elapsed;
-            GlobalBestSolution.IterationFound = iteration - noImprovementCount;
+            return GlobalBestSolution;
         }
 
-        // Вызов события завершения
-        OnAlgorithmCompleted(new AlgorithmCompletedEventArgs
+        _iteration++;
+
+        var positions = Swarm.Select(p => p.Position).ToList();
+        var solutions = _scheduler.CalculateSchedulesParallel(positions);
+
+        UpdateParticles(solutions);
+        UpdateSwarm();
+        SaveIterationHistory(_iteration);
+
+        if (GlobalBestFitness < GlobalBestFitnessHistory.LastOrDefault(double.MaxValue))
         {
-            BestSolution = GlobalBestSolution,
-            TotalIterations = iteration,
-            ComputationTime = stopwatch.Elapsed
-        });
+            _noImprovementCount = 0;
+        }
+        else
+        {
+            _noImprovementCount++;
+        }
 
         progress?.Report(new AlgorithmProgress
         {
-            Iteration = iteration,
+            Iteration = _iteration,
             BestFitness = GlobalBestFitness,
-            AverageFitness = AverageFitnessHistory.LastOrDefault(),
-            IsComplete = true
+            AverageFitness = AverageFitnessHistory.Last(),
+            IsComplete = false
         });
+
+        OnIterationCompleted(new IterationCompletedEventArgs
+        {
+            Iteration = _iteration,
+            BestSolution = GlobalBestSolution,
+            BestFitness = GlobalBestFitness,
+            AverageFitness = AverageFitnessHistory.Last()
+        });
+
+        await System.Threading.Tasks.Task.Delay(10);
+
+        if (IsComplete)
+        {
+            Finish(progress);
+        }
 
         return GlobalBestSolution;
     }
@@ -214,6 +208,36 @@ public class PSOAlgorithm
         GlobalBestFitnessHistory.Clear();
         AverageFitnessHistory.Clear();
         IterationBestSolutions.Clear();
+        _stopwatch = null;
+        _isInitialized = false;
+        _iteration = 0;
+        _noImprovementCount = 0;
+    }
+
+    private void Finish(IProgress<AlgorithmProgress> progress)
+    {
+        _stopwatch?.Stop();
+
+        if (GlobalBestSolution != null && _stopwatch != null)
+        {
+            GlobalBestSolution.ComputationTime = _stopwatch.Elapsed;
+            GlobalBestSolution.IterationFound = _iteration - _noImprovementCount;
+        }
+
+        OnAlgorithmCompleted(new AlgorithmCompletedEventArgs
+        {
+            BestSolution = GlobalBestSolution,
+            TotalIterations = _iteration,
+            ComputationTime = _stopwatch?.Elapsed ?? TimeSpan.Zero
+        });
+
+        progress?.Report(new AlgorithmProgress
+        {
+            Iteration = _iteration,
+            BestFitness = GlobalBestFitness,
+            AverageFitness = AverageFitnessHistory.LastOrDefault(),
+            IsComplete = true
+        });
     }
 
     /// <summary>

@@ -111,12 +111,22 @@
                                  Immediate="true" />
             </MudItem>
             <MudItem xs="12" Class="mt-2">
-                <MudNumericField T="int" @bind-Value="_psoConfig.NoImprovementLimit"
-                                 Label="Лимит без улучшений"
-                                 Min="5"
-                                 Max="200"
-                                 HelperText="Остановка после N итераций без улучшений"
-                                 Immediate="true" />
+                <MudGrid>
+                    <MudItem xs="12" sm="8">
+                        <MudNumericField T="int" @bind-Value="_psoConfig.NoImprovementLimit"
+                                         Label="Лимит без улучшений"
+                                         Min="5"
+                                         Max="200"
+                                         HelperText="Остановка после N итераций без улучшений"
+                                         Immediate="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" Class="d-flex align-center">
+                        <MudCheckBox T="bool"
+                                     @bind-Value="_stepMode"
+                                     Disabled="@(PsoService.Status == AlgorithmStatus.Running)"
+                                     Label="Пошаговый режим" />
+                    </MudItem>
+                </MudGrid>
             </MudItem>
             
             <!-- Кнопки управления -->
@@ -130,6 +140,17 @@
                               Loading="@_isRunning">
                         @(_isRunning ? "Выполняется..." : "Запустить алгоритм")
                     </MudButton>
+
+                    @if (_stepMode)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                  Color="Color.Primary"
+                                  StartIcon="@Icons.Material.Filled.SkipNext"
+                                  OnClick="@StepAlgorithm"
+                                  Disabled="!PsoService.CanStep">
+                            Шаг
+                        </MudButton>
+                    }
                     
                     <MudButton Variant="Variant.Filled"
                               Color="Color.Error"
@@ -377,6 +398,7 @@
     
     // Состояние UI
     private bool _isRunning = false;
+    private bool _stepMode = false;
     
     // Данные для тепловой карты
     private bool _enableSmoothGradient = true;
@@ -497,10 +519,17 @@
         try
         {
             _isRunning = true;
-            
-            await PsoService.RunAlgorithmAsync(_psoConfig);
-            
-            Snackbar.Add("Алгоритм успешно завершен", Severity.Success);
+
+            if (_stepMode)
+            {
+                await PsoService.StartStepModeAsync(_psoConfig);
+                Snackbar.Add("Пошаговый режим активирован", Severity.Info);
+            }
+            else
+            {
+                await PsoService.RunAlgorithmAsync(_psoConfig);
+                Snackbar.Add("Алгоритм успешно завершен", Severity.Success);
+            }
         }
         catch (Exception ex)
         {
@@ -509,6 +538,37 @@
         finally
         {
             _isRunning = false;
+            StateHasChanged();
+        }
+    }
+
+    private async System.Threading.Tasks.Task StepAlgorithm()
+    {
+        try
+        {
+            if (!_stepMode)
+            {
+                return;
+            }
+
+            if (PsoService.Status != AlgorithmStatus.Running && PsoService.Status != AlgorithmStatus.Ready && PsoService.Status != AlgorithmStatus.Completed)
+            {
+                return;
+            }
+
+            await PsoService.StepAsync();
+
+            if (PsoService.Status == AlgorithmStatus.Completed)
+            {
+                Snackbar.Add("Алгоритм завершен в пошаговом режиме", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка пошагового выполнения: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
             StateHasChanged();
         }
     }
