@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -34,9 +35,12 @@ public class ProblemInstance
     /// <param name="taskCount">Количество задач</param>
     /// <param name="machineCount">Количество машин</param>
     /// <param name="seed">Семя для генератора случайных чисел</param>
+    /// <param name="generationConfig">Конфигурация генерации задач и машин</param>
     /// <returns>Случайный экземпляр задачи</returns>
-    public static ProblemInstance CreateRandomInstance(int taskCount, int machineCount, int seed = 42)
+    public static ProblemInstance CreateRandomInstance(int taskCount, int machineCount, int seed = 42, 
+        TaskGenerationConfig generationConfig = null)
     {
+        generationConfig ??= new TaskGenerationConfig();
         var random = new Random(seed);
         var instance = new ProblemInstance();
 
@@ -46,12 +50,12 @@ public class ProblemInstance
             var task = new Task
             {
                 Id = i + 1,
-                ComputationVolume = random.Next(10, 100),
-                MemoryRequirement = random.Next(1, 20)
+                ComputationVolume = random.Next(generationConfig.MinComputationVolume, generationConfig.MaxComputationVolume + 1),
+                MemoryRequirement = random.Next(generationConfig.MinMemoryRequirement, generationConfig.MaxMemoryRequirement + 1)
             };
 
-            // Добавляем предшественников (до 3 случайных задач с меньшим ID)
-            var maxPredecessors = Math.Min(3, i);
+            // Добавляем предшественников
+            var maxPredecessors = Math.Min(generationConfig.MaxPredecessors, i);
             if (maxPredecessors > 0)
             {
                 var predecessorCount = random.Next(0, maxPredecessors + 1);
@@ -74,8 +78,8 @@ public class ProblemInstance
             var vm = new VirtualMachine
             {
                 Id = i + 1,
-                Performance = random.Next(5, 25),
-                AvailableMemory = random.Next(10, 30)
+                Performance = random.Next(generationConfig.MinMachinePerformance, generationConfig.MaxMachinePerformance + 1),
+                AvailableMemory = random.Next(generationConfig.MinMachineMemory, generationConfig.MaxMachineMemory + 1)
             };
 
             instance.VirtualMachines[vm.Id] = vm;
@@ -123,5 +127,36 @@ public class ProblemInstance
 
         recursionStack.Remove(taskId);
         return false;
+    }
+}
+
+/// <summary>
+/// Конфигурация генерации случайных задач и машин
+/// </summary>
+public class TaskGenerationConfig
+{
+    // Параметры задач
+    public int MinComputationVolume { get; set; } = 10;
+    public int MaxComputationVolume { get; set; } = 100;
+    public int MinMemoryRequirement { get; set; } = 1;
+    public int MaxMemoryRequirement { get; set; } = 20;
+    public int MaxPredecessors { get; set; } = 3;
+
+    // Параметры машин
+    public int MinMachinePerformance { get; set; } = 5;
+    public int MaxMachinePerformance { get; set; } = 25;
+    public int MinMachineMemory { get; set; } = 10;
+    public int MaxMachineMemory { get; set; } = 30;
+
+    // Валидация
+    public bool Validate()
+    {
+        if (MinComputationVolume > MaxComputationVolume) return false;
+        if (MinMemoryRequirement > MaxMemoryRequirement) return false;
+        if (MinMachinePerformance > MaxMachinePerformance) return false;
+        if (MinMachineMemory > MaxMachineMemory) return false;
+        if (MaxPredecessors < 0) return false;
+        
+        return true;
     }
 }

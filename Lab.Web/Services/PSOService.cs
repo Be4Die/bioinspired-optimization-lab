@@ -56,9 +56,12 @@ public class PSOService : IAsyncDisposable
     /// <summary>
     /// Инициализирует случайный экземпляр задачи
     /// </summary>
-    public void InitializeRandomInstance(int taskCount, int machineCount, int? seed = null)
+    public void InitializeRandomInstance(int taskCount, int machineCount, int? seed = null, 
+        TaskGenerationConfig generationConfig = null)
     {
-        _currentInstance = ProblemInstance.CreateRandomInstance(taskCount, machineCount, seed ?? Environment.TickCount);
+        generationConfig ??= new TaskGenerationConfig();
+        _currentInstance = ProblemInstance.CreateRandomInstance(taskCount, machineCount, 
+            seed ?? Environment.TickCount, generationConfig);
         _currentSolution = null;
         _visualizationData = null;
         Status = AlgorithmStatus.Ready;

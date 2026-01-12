@@ -37,11 +37,146 @@
                                      Immediate="true"
                                      Margin="Margin.Dense" />
                 </MudItem>
-                <MudItem xs="12" sm="6" md="6">
+                <MudItem xs="12">
                     <MudNumericField T="int?" @bind-Value="_config.RandomSeed"
                                      Label="Семя генератора"
                                      HelperText="Оставьте пустым для случайного"
                                      Margin="Margin.Dense" />
+                </MudItem>
+                
+                <!-- Дополнительные параметры генерации -->
+                <MudItem xs="12" Class="mt-3">
+                    <MudExpansionPanel Text="Дополнительные параметры генерации" Icon="@Icons.Material.Filled.Tune">
+                        <MudGrid>
+                            <!-- Параметры задач -->
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.subtitle2" Class="mb-2 mt-2">Параметры задач</MudText>
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2">Мин. объем вычислений: @_config.MinComputationVolume</MudText>
+                                <MudSlider T="int" 
+                                          Value="@_config.MinComputationVolume"
+                                          ValueChanged="@(v => _config.MinComputationVolume = v)"
+                                          Min="1" 
+                                          Max="50" 
+                                          Immediate="true"
+                                          ValueLabel="true"
+                                          Class="mt-1" />
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2">Макс. объем вычислений: @_config.MaxComputationVolume</MudText>
+                                <MudSlider T="int" 
+                                          Value="@_config.MaxComputationVolume"
+                                          ValueChanged="@(v => _config.MaxComputationVolume = v)"
+                                          Min="50" 
+                                          Max="200" 
+                                          Immediate="true"
+                                          ValueLabel="true"
+                                          Class="mt-1" />
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2">Мин. требование памяти: @_config.MinMemoryRequirement</MudText>
+                                <MudSlider T="int" 
+                                          Value="@_config.MinMemoryRequirement"
+                                          ValueChanged="@(v => _config.MinMemoryRequirement = v)"
+                                          Min="1" 
+                                          Max="10" 
+                                          Immediate="true"
+                                          ValueLabel="true"
+                                          Class="mt-1" />
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2">Макс. требование памяти: @_config.MaxMemoryRequirement</MudText>
+                                <MudSlider T="int" 
+                                          Value="@_config.MaxMemoryRequirement"
+                                          ValueChanged="@(v => _config.MaxMemoryRequirement = v)"
+                                          Min="10" 
+                                          Max="50" 
+                                          Immediate="true"
+                                          ValueLabel="true"
+                                          Class="mt-1" />
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2">Макс. предшественников: @_config.MaxPredecessors</MudText>
+                                <MudSlider T="int" 
+                                          Value="@_config.MaxPredecessors"
+                                          ValueChanged="@(v => _config.MaxPredecessors = v)"
+                                          Min="0" 
+                                          Max="5" 
+                                          Immediate="true"
+                                          ValueLabel="true"
+                                          Class="mt-1" />
+                            </MudItem>
+                            
+                            <!-- Параметры машин -->
+                            <MudItem xs="12" Class="mt-3">
+                                <MudText Typo="Typo.subtitle2" Class="mb-2">Параметры машин</MudText>
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2">Мин. производительность: @_config.MinMachinePerformance</MudText>
+                                <MudSlider T="int" 
+                                          Value="@_config.MinMachinePerformance"
+                                          ValueChanged="@(v => _config.MinMachinePerformance = v)"
+                                          Min="1" 
+                                          Max="20" 
+                                          Immediate="true"
+                                          ValueLabel="true"
+                                          Class="mt-1" />
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2">Макс. производительность: @_config.MaxMachinePerformance</MudText>
+                                <MudSlider T="int" 
+                                          Value="@_config.MaxMachinePerformance"
+                                          ValueChanged="@(v => _config.MaxMachinePerformance = v)"
+                                          Min="20" 
+                                          Max="100" 
+                                          Immediate="true"
+                                          ValueLabel="true"
+                                          Class="mt-1" />
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2">Мин. память машины: @_config.MinMachineMemory</MudText>
+                                <MudSlider T="int" 
+                                          Value="@_config.MinMachineMemory"
+                                          ValueChanged="@(v => _config.MinMachineMemory = v)"
+                                          Min="5" 
+                                          Max="20" 
+                                          Immediate="true"
+                                          ValueLabel="true"
+                                          Class="mt-1" />
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2">Макс. память машины: @_config.MaxMachineMemory</MudText>
+                                <MudSlider T="int" 
+                                          Value="@_config.MaxMachineMemory"
+                                          ValueChanged="@(v => _config.MaxMachineMemory = v)"
+                                          Min="20" 
+                                          Max="100" 
+                                          Immediate="true"
+                                          ValueLabel="true"
+                                          Class="mt-1" />
+                            </MudItem>
+                            
+                            <!-- Валидация -->
+                            <MudItem xs="12" Class="mt-3">
+                                @if (!_config.Validate())
+                                {
+                                    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true">
+                                        Ошибка валидации: Минимальные значения должны быть меньше максимальных
+                                    </MudAlert>
+                                }
+                            </MudItem>
+                        </MudGrid>
+                    </MudExpansionPanel>
                 </MudItem>
                 
                 <!-- Конфигурация алгоритма PSO -->
@@ -65,33 +200,46 @@
                                      Immediate="true"
                                      Margin="Margin.Dense" />
                 </MudItem>
-                <MudItem xs="12" sm="6" md="4">
-                    <MudNumericField T="double" @bind-Value="_psoConfig.InertiaWeight"
-                                     Label="Инерция (w)"
-                                     Min="0.1"
-                                     Max="1.5"
-                                     Step="0.1"
-                                     Immediate="true"
-                                     Margin="Margin.Dense" />
+                
+                <MudItem xs="12">
+                    <MudText Typo="Typo.body2">Инерция (w): @_psoConfig.InertiaWeight.ToString("F1")</MudText>
+                    <MudSlider T="double" 
+                              Value="@_psoConfig.InertiaWeight"
+                              ValueChanged="@(v => _psoConfig.InertiaWeight = v)"
+                              Min="0.1" 
+                              Max="1.5" 
+                              Step="0.1"
+                              Immediate="true"
+                              ValueLabel="true"
+                              Class="mt-1" />
                 </MudItem>
-                <MudItem xs="12" sm="6" md="4">
-                    <MudNumericField T="double" @bind-Value="_psoConfig.CognitiveWeight"
-                                     Label="Когнитивный (c1)"
-                                     Min="0.1"
-                                     Max="3.0"
-                                     Step="0.1"
-                                     Immediate="true"
-                                     Margin="Margin.Dense" />
+                
+                <MudItem xs="12">
+                    <MudText Typo="Typo.body2">Когнитивный (c1): @_psoConfig.CognitiveWeight.ToString("F1")</MudText>
+                    <MudSlider T="double" 
+                              Value="@_psoConfig.CognitiveWeight"
+                              ValueChanged="@(v => _psoConfig.CognitiveWeight = v)"
+                              Min="0.1" 
+                              Max="3.0" 
+                              Step="0.1"
+                              Immediate="true"
+                              ValueLabel="true"
+                              Class="mt-1" />
                 </MudItem>
-                <MudItem xs="12" sm="6" md="4">
-                    <MudNumericField T="double" @bind-Value="_psoConfig.SocialWeight"
-                                     Label="Социальный (c2)"
-                                     Min="0.1"
-                                     Max="3.0"
-                                     Step="0.1"
-                                     Immediate="true"
-                                     Margin="Margin.Dense" />
+                
+                <MudItem xs="12">
+                    <MudText Typo="Typo.body2">Социальный (c2): @_psoConfig.SocialWeight.ToString("F1")</MudText>
+                    <MudSlider T="double" 
+                              Value="@_psoConfig.SocialWeight"
+                              ValueChanged="@(v => _psoConfig.SocialWeight = v)"
+                              Min="0.1" 
+                              Max="3.0" 
+                              Step="0.1"
+                              Immediate="true"
+                              ValueLabel="true"
+                              Class="mt-1" />
                 </MudItem>
+                
                 <MudItem xs="12" Class="mt-2">
                     <MudNumericField T="int" @bind-Value="_psoConfig.NoImprovementLimit"
                                      Label="Лимит без улучшений"
@@ -129,7 +277,7 @@
                               StartIcon="@Icons.Material.Filled.PlayArrow"
                               OnClick="@InitializeProblem"
                               FullWidth="true"
-                              Disabled="@(PsoService.Status == AlgorithmStatus.Running)"
+                              Disabled="@(PsoService.Status == AlgorithmStatus.Running || !_config.Validate())"
                               Size="Size.Small">
                         Инициализировать задачу
                     </MudButton>
@@ -151,7 +299,7 @@
                                   Color="Color.Success"
                                   StartIcon="@Icons.Material.Filled.PlayCircle"
                                   OnClick="@StartAlgorithm"
-                                  Disabled="@(PsoService.Status != AlgorithmStatus.Ready && PsoService.Status != AlgorithmStatus.Completed)"
+                                  Disabled="@(PsoService.Status != AlgorithmStatus.Ready && PsoService.Status != AlgorithmStatus.Completed || !_config.Validate())"
                                   Loading="@_isRunning"
                                   Size="Size.Small">
                             @(_isRunning ? "Выполняется..." : "Запустить алгоритм")
@@ -446,7 +594,19 @@
 
 @code {
     // Конфигурация
-    private ProblemConfiguration _config = new() { TaskCount = 20, MachineCount = 4 };
+    private ProblemConfiguration _config = new() { 
+        TaskCount = 20, 
+        MachineCount = 4,
+        MinComputationVolume = 10,
+        MaxComputationVolume = 100,
+        MinMemoryRequirement = 1,
+        MaxMemoryRequirement = 20,
+        MaxPredecessors = 3,
+        MinMachinePerformance = 5,
+        MaxMachinePerformance = 25,
+        MinMachineMemory = 10,
+        MaxMachineMemory = 30
+    };
     private PSOConfiguration _psoConfig = PSOConfiguration.Default;
     
     // Состояние UI
@@ -556,10 +716,28 @@
     {
         try
         {
+            if (!_config.Validate())
+            {
+                Snackbar.Add("Ошибка валидации параметров генерации", Severity.Error);
+                return;
+            }
+
             PsoService.InitializeRandomInstance(
                 _config.TaskCount,
                 _config.MachineCount,
-                _config.RandomSeed);
+                _config.RandomSeed,
+                new TaskGenerationConfig
+                {
+                    MinComputationVolume = _config.MinComputationVolume,
+                    MaxComputationVolume = _config.MaxComputationVolume,
+                    MinMemoryRequirement = _config.MinMemoryRequirement,
+                    MaxMemoryRequirement = _config.MaxMemoryRequirement,
+                    MaxPredecessors = _config.MaxPredecessors,
+                    MinMachinePerformance = _config.MinMachinePerformance,
+                    MaxMachinePerformance = _config.MaxMachinePerformance,
+                    MinMachineMemory = _config.MinMachineMemory,
+                    MaxMachineMemory = _config.MaxMachineMemory
+                });
             
             Snackbar.Add($"Задача создана: {_config.TaskCount} задач, {_config.MachineCount} машин", Severity.Success);
         }
@@ -732,5 +910,29 @@
         public int TaskCount { get; set; } = 20;
         public int MachineCount { get; set; } = 4;
         public int? RandomSeed { get; set; }
+        
+        // Параметры генерации задач
+        public int MinComputationVolume { get; set; }
+        public int MaxComputationVolume { get; set; }
+        public int MinMemoryRequirement { get; set; }
+        public int MaxMemoryRequirement { get; set; }
+        public int MaxPredecessors { get; set; }
+        
+        // Параметры генерации машин
+        public int MinMachinePerformance { get; set; }
+        public int MaxMachinePerformance { get; set; }
+        public int MinMachineMemory { get; set; }
+        public int MaxMachineMemory { get; set; }
+        
+        public bool Validate()
+        {
+            if (MinComputationVolume > MaxComputationVolume) return false;
+            if (MinMemoryRequirement > MaxMemoryRequirement) return false;
+            if (MinMachinePerformance > MaxMachinePerformance) return false;
+            if (MinMachineMemory > MaxMachineMemory) return false;
+            if (MaxPredecessors < 0) return false;
+            
+            return true;
+        }
     }
 }
