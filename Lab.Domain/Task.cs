@@ -1,6 +1,6 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
-namespace Lab.PSO;
+namespace Lab.Domain;
 
 /// <summary>
 /// Представляет вычислительную задачу с требованиями к ресурсам и зависимостями

@@ -1,8 +1,5 @@
-@using System.Globalization
-@using System.Threading
 @using Blazor.Diagrams.Core.Anchors
 @using Blazor.Diagrams.Core.Models.Base
-@using Blazor.Diagrams.Core.Geometry
 @using Size = Blazor.Diagrams.Core.Geometry.Size
 
 @implements IAsyncDisposable
@@ -64,15 +61,15 @@
 </MudGrid>
 
 @code {
-    [Parameter] public Lab.PSO.ProblemInstance? Instance { get; set; }
-    [Parameter] public Lab.PSO.Solution? Solution { get; set; }
+    [Parameter] public ProblemInstance? Instance { get; set; }
+    [Parameter] public Solution? Solution { get; set; }
 
     private BlazorDiagram _diagram = null!;
     private readonly Dictionary<int, NodeModel> _taskNodes = new();
     private readonly Dictionary<int, NodeModel> _machineNodes = new();
     private readonly List<EdgeRef> _edges = new();
 
-    private Lab.PSO.ProblemInstance? _builtForInstance;
+    private ProblemInstance? _builtForInstance;
 
     protected override void OnInitialized()
     {

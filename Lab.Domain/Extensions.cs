@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Lab.PSO;
+namespace Lab.Domain;
 
 /// <summary>
 /// Вспомогательные методы расширения

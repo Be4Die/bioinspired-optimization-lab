@@ -1,11 +1,16 @@
-namespace Lab.PSO;
+namespace Lab.Domain;
 
 /// <summary>
 /// Планировщик для вычисления времени выполнения и проверки ограничений
 /// </summary>
-public class Scheduler(ProblemInstance instance)
+public class Scheduler
 {
-    private readonly ProblemInstance _instance = instance;
+    private readonly ProblemInstance _instance;
+
+    public Scheduler(ProblemInstance instance)
+    {
+        _instance = instance;
+    }
 
     /// <summary>
     /// Вычисляет расписание для заданного назначения

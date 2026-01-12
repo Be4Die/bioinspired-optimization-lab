@@ -1,4 +1,5 @@
-using Lab.PSO;
+using Lab.Algorithms;
+using Lab.Domain;
 using Microsoft.JSInterop;
 
 namespace Lab.Web.Services;

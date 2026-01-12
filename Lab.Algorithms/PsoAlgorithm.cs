@@ -1,6 +1,7 @@
 using System.Diagnostics;
+using Lab.Domain;
 
-namespace Lab.PSO;
+namespace Lab.Algorithms;
 
 /// <summary>
 /// Реализация алгоритма роя частиц для задачи распределения задач

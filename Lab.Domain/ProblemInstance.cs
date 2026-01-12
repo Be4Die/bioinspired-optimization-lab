@@ -1,4 +1,4 @@
-namespace Lab.PSO;
+namespace Lab.Domain;
 
 /// <summary>
 /// Представляет экземпляр задачи распределения с наборами задач и машин

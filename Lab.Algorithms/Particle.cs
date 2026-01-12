@@ -1,4 +1,6 @@
-namespace Lab.PSO;
+using Lab.Domain;
+
+namespace Lab.Algorithms;
 
 /// <summary>
 /// Представляет частицу в алгоритме роя частиц

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Lab.PSO;
+namespace Lab.Domain;
 
 /// <summary>
 /// Представляет виртуальную машину с характеристиками производительности

@@ -14,7 +14,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Lab.PSO\Lab.PSO.csproj" />
+      <ProjectReference Include="..\Lab.Algorithms\Lab.Algorithms.csproj" />
+      <ProjectReference Include="..\Lab.Domain\Lab.Domain.csproj" />
     </ItemGroup>
 
 </Project>

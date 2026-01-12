@@ -1,4 +1,4 @@
-namespace Lab.PSO;
+namespace Lab.Domain;
 
 /// <summary>
 /// Данные для визуализации работы алгоритма

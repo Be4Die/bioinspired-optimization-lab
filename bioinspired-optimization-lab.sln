@@ -2,7 +2,9 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lab.Web", "Lab.Web\Lab.Web.csproj", "{C170A45A-856E-48CE-AD79-6A64F5BCBDBC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lab.PSO", "Lab.PSO\Lab.PSO.csproj", "{FC47CF4B-0BB8-4D55-B621-E881CD343DE0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lab.Domain", "Lab.Domain\Lab.Domain.csproj", "{040C6455-927F-4FD5-B90B-979C36078EA8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lab.Algorithms", "Lab.Algorithms\Lab.Algorithms.csproj", "{A464284B-B3CF-475E-BA33-2A34F62B6154}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -14,9 +16,13 @@ Global
 		{C170A45A-856E-48CE-AD79-6A64F5BCBDBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C170A45A-856E-48CE-AD79-6A64F5BCBDBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C170A45A-856E-48CE-AD79-6A64F5BCBDBC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FC47CF4B-0BB8-4D55-B621-E881CD343DE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FC47CF4B-0BB8-4D55-B621-E881CD343DE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FC47CF4B-0BB8-4D55-B621-E881CD343DE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FC47CF4B-0BB8-4D55-B621-E881CD343DE0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{040C6455-927F-4FD5-B90B-979C36078EA8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{040C6455-927F-4FD5-B90B-979C36078EA8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{040C6455-927F-4FD5-B90B-979C36078EA8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{040C6455-927F-4FD5-B90B-979C36078EA8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A464284B-B3CF-475E-BA33-2A34F62B6154}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A464284B-B3CF-475E-BA33-2A34F62B6154}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A464284B-B3CF-475E-BA33-2A34F62B6154}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A464284B-B3CF-475E-BA33-2A34F62B6154}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
