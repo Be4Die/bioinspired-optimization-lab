@@ -1,37 +1,7 @@
-<div class="bipartite-node @GetSideClass() @(Node.Selected ? "selected" : "")">
+<div class="bipartite-node @(Node.Selected ? "selected" : "")">
     <div class="bipartite-node-title">@Node.Title</div>
-
-    @if (Node.Ports.Count > 0)
-    {
-        foreach (var port in Node.Ports)
-        {
-            <Blazor.Diagrams.Components.Renderers.PortRenderer @key="port"
-                                                               Port="port"
-                                                               Class="@GetPortClass(port)" />
-        }
-    }
 </div>
 
 @code {
     [Parameter] public NodeModel Node { get; set; } = null!;
-
-    private string GetSideClass()
-    {
-        if (Node.Ports.Any(p => p.Alignment == PortAlignment.Right))
-            return "left";
-        if (Node.Ports.Any(p => p.Alignment == PortAlignment.Left))
-            return "right";
-        return "unknown";
-    }
-
-    private string GetPortClass(PortModel port)
-    {
-        return port.Alignment switch
-        {
-            PortAlignment.Right => "bipartite-port right",
-            PortAlignment.Left => "bipartite-port left",
-            _ => "bipartite-port"
-        };
-    }
 }
-
