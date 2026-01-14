@@ -709,7 +709,7 @@
             <MudPaper Class="pa-3 mb-3" Elevation="1">
                 <MudGrid>
                     <MudItem xs="12">
-                        <MudText Typo="Typo.h6" Class="mb-2">Тепловая карта утилизации ресурсов</MudText>
+                        <MudText Typo="Typo.h6" Class="mb-2">Тепловая карта загрузки ресурсов</MudText>
                         <MudText Typo="Typo.body2" Class="mb-2">
                             Визуализация использования вычислительных ресурсов виртуальных машин
                         </MudText>
@@ -717,48 +717,74 @@
                     
                     <!-- Статистика -->
                     <MudItem xs="12" Class="mb-2">
-                        @{
+                        @if (AlgorithmService.VisualizationData?.ResourceHeatmap != null && 
+                             AlgorithmService.CurrentSolution != null && 
+                             AlgorithmService.CurrentInstance != null)
+                        {
                             var heatmapData = AlgorithmService.VisualizationData.ResourceHeatmap;
-                            var minUtil = heatmapData.UtilizationValues.Min();
-                            var maxUtil = heatmapData.UtilizationValues.Max();
-                            var avgUtil = heatmapData.UtilizationValues.Average();
-                            var variance = heatmapData.UtilizationValues.Sum(v => Math.Pow(v - avgUtil, 2)) / heatmapData.UtilizationValues.Count;
-                            var imbalance = Math.Sqrt(variance);
+                            var machines = AlgorithmService.CurrentInstance.VirtualMachines.Values
+                                .OrderBy(m => m.Id)
+                                .ToList();
+                            
+                            // Собираем реальные данные о загрузке CPU
+                            var cpuLoads = new List<double>();
+                            foreach (var machine in machines)
+                            {
+                                if (AlgorithmService.CurrentSolution.ScheduledMachines.TryGetValue(machine.Id, out var scheduledMachine))
+                                {
+                                    double load = scheduledMachine.LastCompletionTime / AlgorithmService.CurrentSolution.Makespan;
+                                    cpuLoads.Add(load);
+                                }
+                                else
+                                {
+                                    cpuLoads.Add(0);
+                                }
+                            }
+                            
+                            if (cpuLoads.Count > 0)
+                            {
+                                var minUtil = cpuLoads.Min();
+                                var maxUtil = cpuLoads.Max();
+                                var avgUtil = cpuLoads.Average();
+                                var variance = cpuLoads.Sum(v => Math.Pow(v - avgUtil, 2)) / cpuLoads.Count;
+                                var imbalance = Math.Sqrt(variance);
+                                
+                                <MudGrid>
+                                    <MudItem xs="12" sm="6" md="3">
+                                        <MudPaper Class="pa-2 text-center" Elevation="1">
+                                            <MudText Typo="Typo.caption" Color="Color.Default">Минимум</MudText>
+                                            <MudText Typo="Typo.h6" Color="Color.Success">
+                                                @(minUtil.ToString("P0"))
+                                            </MudText>
+                                        </MudPaper>
+                                    </MudItem>
+                                    <MudItem xs="12" sm="6" md="3">
+                                        <MudPaper Class="pa-2 text-center" Elevation="1">
+                                            <MudText Typo="Typo.caption" Color="Color.Default">Среднее</MudText>
+                                            <MudText Typo="Typo.h6" Color="Color.Primary">
+                                                @(avgUtil.ToString("P0"))
+                                            </MudText>
+                                        </MudPaper>
+                                    </MudItem>
+                                    <MudItem xs="12" sm="6" md="3">
+                                        <MudPaper Class="pa-2 text-center" Elevation="1">
+                                            <MudText Typo="Typo.caption" Color="Color.Default">Максимум</MudText>
+                                            <MudText Typo="Typo.h6" Color="Color.Error">
+                                                @(maxUtil.ToString("P0"))
+                                            </MudText>
+                                        </MudPaper>
+                                    </MudItem>
+                                    <MudItem xs="12" sm="6" md="3">
+                                        <MudPaper Class="pa-2 text-center" Elevation="1">
+                                            <MudText Typo="Typo.caption" Color="Color.Default">Неравномерность</MudText>
+                                            <MudText Typo="Typo.h6" Color="@GetImbalanceColor(imbalance)">
+                                                @(imbalance.ToString("P1"))
+                                            </MudText>
+                                        </MudPaper>
+                                    </MudItem>
+                                </MudGrid>
+                            }
                         }
-                        <MudGrid>
-                            <MudItem xs="12" sm="6" md="3">
-                                <MudPaper Class="pa-2 text-center" Elevation="1">
-                                    <MudText Typo="Typo.caption" Color="Color.Default">Минимум</MudText>
-                                    <MudText Typo="Typo.h6" Color="Color.Success">
-                                        @(minUtil.ToString("P0"))
-                                    </MudText>
-                                </MudPaper>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" md="3">
-                                <MudPaper Class="pa-2 text-center" Elevation="1">
-                                    <MudText Typo="Typo.caption" Color="Color.Default">Среднее</MudText>
-                                    <MudText Typo="Typo.h6" Color="Color.Primary">
-                                        @(avgUtil.ToString("P0"))
-                                    </MudText>
-                                </MudPaper>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" md="3">
-                                <MudPaper Class="pa-2 text-center" Elevation="1">
-                                    <MudText Typo="Typo.caption" Color="Color.Default">Максимум</MudText>
-                                    <MudText Typo="Typo.h6" Color="Color.Error">
-                                        @(maxUtil.ToString("P0"))
-                                    </MudText>
-                                </MudPaper>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" md="3">
-                                <MudPaper Class="pa-2 text-center" Elevation="1">
-                                    <MudText Typo="Typo.caption" Color="Color.Default">Неравномерность</MudText>
-                                    <MudText Typo="Typo.h6" Color="@GetImbalanceColor(imbalance)">
-                                        @(imbalance.ToString("P1"))
-                                    </MudText>
-                                </MudPaper>
-                            </MudItem>
-                        </MudGrid>
                     </MudItem>
 
                     <!-- Тепловая карта MudBlazor -->
@@ -808,7 +834,7 @@
             <MudPaper Class="pa-3 mb-3" Elevation="1">
                 <MudGrid>
                     <MudItem xs="12">
-                        <MudText Typo="Typo.h6" Class="mb-2">Тепловая карта утилизации ресурсов</MudText>
+                        <MudText Typo="Typo.h6" Class="mb-2">Тепловая карта загрузки ресурсов</MudText>
                         <MudText Typo="Typo.body2" Class="mb-2">
                             Визуализация использования вычислительных ресурсов виртуальных машин
                         </MudText>
@@ -1238,55 +1264,76 @@
         // Создаем метки оси X - идентификаторы машин
         _xLabels = heatmapData.MachineIds.Select(id => $"VM {id}").ToArray();
         
-        // Создаем метки оси Y - различные показатели утилизации
-        _yLabels = ["Утилизация CPU", "Утилизация памяти", "Нагрузка по задачам", "Общая эффективность"];
+        // Создаем метки оси Y - различные показатели (без слова "Утилизация")
+        _yLabels = ["Загрузка CPU", "Использование памяти", "Нагрузка задачами", "Общая эффективность"];
         
-        // Инициализируем генератор случайных чисел для демонстрационных данных
-        var random = new Random();
-        
-        // Создаем серии для тепловой карты (двумерный массив)
+        // Инициализируем серии для тепловой карты
         _heatmapSeries = new List<ChartSeries>();
         
-        // Для каждой метрики (строки) создаем свой ряд данных
-        for (int row = 0; row < _yLabels.Length; row++)
+        // Получаем реальные данные из решения
+        if (AlgorithmService.CurrentSolution?.ScheduledMachines != null && 
+            AlgorithmService.CurrentInstance != null)
         {
-            var rowData = new double[_xLabels.Length];
+            var machines = AlgorithmService.CurrentInstance.VirtualMachines.Values
+                .OrderBy(m => m.Id)
+                .ToList();
             
-            for (int col = 0; col < _xLabels.Length; col++)
+            // Для каждой метрики создаем свой ряд данных
+            for (int row = 0; row < _yLabels.Length; row++)
             {
-                // Берем базовую утилизацию из исходных данных
-                double baseUtilization = heatmapData.UtilizationValues[col];
+                var rowData = new double[_xLabels.Length];
                 
-                // В зависимости от строки (метрики) генерируем разные значения
-                // Для демонстрации создаем реалистичные данные на основе базовой утилизации
-                switch (row)
+                for (int col = 0; col < _xLabels.Length; col++)
                 {
-                    case 0: // Утилизация CPU
-                        rowData[col] = Math.Round(baseUtilization * 100, 1);
-                        break;
-                    case 1: // Утилизация памяти
-                        // Память обычно утилизируется немного по-другому
-                        double memoryUtil = baseUtilization * (0.7 + random.NextDouble() * 0.6);
-                        rowData[col] = Math.Round(Math.Min(memoryUtil, 1.0) * 100, 1);
-                        break;
-                    case 2: // Нагрузка по задачам
-                        // Предположим, что каждая задача занимает 5-15% ресурсов
-                        int taskCount = (int)(baseUtilization * 100 / (10 + random.NextDouble() * 10));
-                        rowData[col] = Math.Round(taskCount * 10.0, 1); // Преобразуем в проценты
-                        break;
-                    case 3: // Общая эффективность
-                        // Комбинированная метрика
-                        double efficiency = (baseUtilization + (random.NextDouble() * 0.3 - 0.15)) * 100;
-                        rowData[col] = Math.Round(Math.Max(0, Math.Min(efficiency, 100)), 1);
-                        break;
+                    if (col < machines.Count)
+                    {
+                        var machineId = machines[col].Id;
+                        
+                        if (AlgorithmService.CurrentSolution.ScheduledMachines.TryGetValue(machineId, out var scheduledMachine))
+                        {
+                            // Реальные данные на основе решения
+                            switch (row)
+                            {
+                                case 0: // Загрузка CPU
+                                    // Время работы машины относительно makespan
+                                    rowData[col] = Math.Round((scheduledMachine.LastCompletionTime / AlgorithmService.CurrentSolution.Makespan) * 100, 1);
+                                    break;
+                                case 1: // Использование памяти
+                                    // Использование памяти относительно доступной
+                                    double memoryUsed = scheduledMachine.AssignedTasks?.Sum(t => t.MemoryRequirement) ?? 0;
+                                    double memoryUtilization = (machines[col].AvailableMemory > 0) ? 
+                                        Math.Min(memoryUsed / machines[col].AvailableMemory * 100, 100) : 0;
+                                    rowData[col] = Math.Round(memoryUtilization, 1);
+                                    break;
+                                case 2: // Нагрузка задачами
+                                    // Количество задач на машине
+                                    int taskCount = scheduledMachine.AssignedTasks?.Count ?? 0;
+                                    rowData[col] = taskCount;
+                                    break;
+                                case 3: // Общая эффективность
+                                    // Комбинированная метрика на основе загрузки CPU и памяти
+                                    double cpuLoad = scheduledMachine.LastCompletionTime / AlgorithmService.CurrentSolution.Makespan;
+                                    memoryUsed = scheduledMachine.AssignedTasks?.Sum(t => t.MemoryRequirement) ?? 0;
+                                    double memLoad = (machines[col].AvailableMemory > 0) ? 
+                                        memoryUsed / machines[col].AvailableMemory : 0;
+                                    double efficiency = (cpuLoad + memLoad) / 2 * 100;
+                                    rowData[col] = Math.Round(Math.Min(efficiency, 100), 1);
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            rowData[col] = 0;
+                        }
+                    }
                 }
+                
+                _heatmapSeries.Add(new ChartSeries 
+                { 
+                    Name = _yLabels[row], 
+                    Data = rowData
+                });
             }
-            
-            _heatmapSeries.Add(new ChartSeries 
-            { 
-                Name = _yLabels[row], 
-                Data = rowData
-            });
         }
         
         BuildOptions();
