@@ -1,46 +1,52 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Lab.Web - Алгоритм роя частиц для распределения задач</title>
+        <base href="/bioinspired-optimization-lab/" />
+        <link rel="stylesheet" href="css/app.css" />
+        <link
+            href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="_content/Z.Blazor.Diagrams/style.min.css"
+            rel="stylesheet"
+        />
+        <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+        <link
+            href="_content/Z.Blazor.Diagrams/default.styles.min.css"
+            rel="stylesheet"
+        />
+    </head>
 
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lab.Web - Алгоритм роя частиц для распределения задач</title>
-    <base href="/" />
-    <link rel="stylesheet" href="css/app.css" />
-    <link rel="stylesheet" href="css/additional.css" />
-    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
-    <link href="_content/Z.Blazor.Diagrams/style.min.css" rel="stylesheet" />
-    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-    <link href="_content/Z.Blazor.Diagrams/default.styles.min.css" rel="stylesheet" />
-</head>
+    <body>
+        <div id="app">
+            <svg class="loading-progress">
+                <circle r="40%" cx="50%" cy="50%" />
+                <circle r="40%" cx="50%" cy="50%" />
+            </svg>
+            <div class="loading-progress-text"></div>
+        </div>
 
-<body>
-<div id="app">
-    <svg class="loading-progress">
-        <circle r="40%" cx="50%" cy="50%" />
-        <circle r="40%" cx="50%" cy="50%" />
-    </svg>
-    <div class="loading-progress-text"></div>
-</div>
-
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
-<script src="_framework/blazor.webassembly.js"></script>
-<script src="_content/MudBlazor/MudBlazor.min.js"></script>
-<script src="_content/Z.Blazor.Diagrams/script.min.js"></script>
-<script>
-    function downloadFile(filename, contentType, base64Data) {
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = 'data:' + contentType + ';base64,' + base64Data;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-</script>
-</body>
-
+        <div id="blazor-error-ui">
+            An unhandled error has occurred.
+            <a href="." class="reload">Reload</a>
+            <span class="dismiss">🗙</span>
+        </div>
+        <script src="_framework/blazor.webassembly.js"></script>
+        <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+        <script src="_content/Z.Blazor.Diagrams/script.min.js"></script>
+        <script>
+            function downloadFile(filename, contentType, base64Data) {
+                const link = document.createElement("a");
+                link.download = filename;
+                link.href = "data:" + contentType + ";base64," + base64Data;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        </script>
+    </body>
 </html>
