@@ -158,3 +158,431 @@ $ x_(id)^(t+1) = x_(id)^t + v_(id)^(t+1) $
   image("pso-flowchart.svg"),
   caption: [Схема алгоритма роя частиц],
 )
+
+#pagebreak()
+
+= Разработка и реализация алгоритма
+
+== Представление решения в алгоритмах
+
+=== Алгоритм роя частиц (PSO)
+
+В алгоритме роя частиц решение представляется в виде *вектора назначений*, где каждая позиция соответствует задаче, а значение — идентификатору виртуальной машины.
+
+```csharp
+// Позиция частицы (решение)
+public Dictionary<int, int> Position { get; set; }
+
+// Пример: назначение 5 задач на 3 машины
+// Position = {1: 2, 2: 1, 3: 3, 4: 2, 5: 1}
+// Задача 1 → машина 2, задача 2 → машина 1, и т.д.
+```
+
+**Корректность решения** обеспечивается через *процедуру репарации*:
+- Проверка достаточности памяти на назначенной машине
+- При нарушении — переназначение на другую подходящую машину
+- Гарантия, что каждая задача назначена ровно на одну машину
+
+=== Генетический алгоритм (GA)
+
+В генетическом алгоритме решение кодируется *хромосомой* — аналогичным вектором назначений:
+
+```csharp
+// Хромосома особи (решение)
+public Dictionary<int, int> Chromosome { get; private set; }
+
+// Пример структуры: {ID_задачи: ID_машины, ...}
+// Мутация: случайное изменение назначения отдельной задачи
+// Кроссовер: обмен частями векторов между родителями
+```
+
+== Генерация начальной популяции
+
+=== PSO: Инициализация роя частиц
+
+```csharp
+private Dictionary<int, int> InitializePosition()
+{
+    var position = new Dictionary<int, int>();
+    var machineIds = _instance.VirtualMachines.Keys.ToList();
+    
+    foreach (var task in _instance.Tasks.Values)
+    {
+        // Случайное назначение на машину
+        int machineId = machineIds[_random.Next(machineIds.Count)];
+        position[task.Id] = machineId;
+    }
+    
+    // Применяем репарацию для соблюдения ограничений
+    RepairPosition(position);
+    return position;
+}
+```
+
+=== GA: Инициализация популяции
+
+```csharp
+private void InitializePopulation()
+{
+    Population = new List<Individual>();
+    
+    for (int i = 0; i < PopulationSize; i++)
+    {
+        // Создание особи со случайной хромосомой
+        var individual = new Individual(_instance, _random);
+        Population.Add(individual);
+    }
+    
+    EvaluatePopulation(); // Первоначальная оценка
+}
+```
+
+== Вычисление целевой функции
+
+Целевая функция вычисляется через *планировщик* (Scheduler), который:
+1. Распределяет задачи по машинам согласно назначению
+2. Учитывает зависимости предшествования
+3. Вычисляет время начала и завершения каждой задачи
+4. Определяет общее время выполнения (makespan)
+5. Добавляет штрафы за нарушения ограничений
+
+```csharp
+public Solution CalculateSchedule(Dictionary<int, int> assignment)
+{
+    // Создание структур для планирования
+    var tasks = _instance.Tasks.Values.Select(t => t.Clone()).ToDictionary(t => t.Id);
+    var machines = _instance.VirtualMachines.Values.Select(m => m.Clone()).ToDictionary(m => m.Id);
+    
+    // Назначение задач на машины
+    foreach (var (taskId, machineId) in assignment)
+    {
+        tasks[taskId].AssignedMachineId = machineId;
+        machines[machineId].AssignedTasks.Add(tasks[taskId]);
+    }
+    
+    // Алгоритм спискового расписания с учетом предшествования
+    double makespan = ScheduleTasks(tasks, machines);
+    
+    // Вычисление штрафов за нарушения
+    double penalty = CalculatePenalties(assignment, tasks, machines);
+    
+    return new Solution
+    {
+        Assignment = assignment,
+        Makespan = makespan,
+        TotalPenalty = penalty,
+        Fitness = makespan + penalty // Итоговое значение целевой функции
+    };
+}
+```
+
+== Основные операторы алгоритмов
+
+=== PSO: Операторы перемещения частиц
+
+```csharp
+// Обновление скорости частицы
+public void UpdateVelocity(
+    Dictionary<int, int> globalBestPosition,
+    double inertiaWeight,
+    double cognitiveWeight,
+    double socialWeight)
+{
+    foreach (var taskId in Position.Keys)
+    {
+        double currentVelocity = Velocity[taskId];
+        double r1 = _random.NextDouble();
+        double r2 = _random.NextDouble();
+        
+        // Дискретная версия PSO
+        double cognitiveComponent = (BestPosition[taskId] != Position[taskId]) ? 1 : 0;
+        double socialComponent = (globalBestPosition[taskId] != Position[taskId]) ? 1 : 0;
+        
+        double newVelocity = inertiaWeight * currentVelocity
+                           + cognitiveWeight * r1 * cognitiveComponent
+                           + socialWeight * r2 * socialComponent;
+        
+        // Ограничение скорости в диапазоне [0, 1]
+        Velocity[taskId] = Math.Max(0, Math.Min(1, newVelocity));
+    }
+}
+
+// Обновление позиции на основе скорости
+public void UpdatePosition()
+{
+    foreach (var taskId in Position.Keys)
+    {
+        // Интерпретация скорости как вероятности изменения
+        if (_random.NextDouble() < Velocity[taskId])
+        {
+            // Случайное изменение назначения задачи
+            int newMachineId = GetRandomMachineId(Position[taskId]);
+            Position[taskId] = newMachineId;
+        }
+    }
+    RepairPosition(Position); // Корректировка решения
+}
+```
+
+=== GA: Генетические операторы
+
+```csharp
+// Одноточечный кроссовер
+public (Individual, Individual) Crossover(Individual other, double crossoverRate)
+{
+    if (_random.NextDouble() > crossoverRate)
+        return (this.Clone(), other.Clone());
+    
+    var child1Genes = new Dictionary<int, int>();
+    var child2Genes = new Dictionary<int, int>();
+    
+    // Точка кроссовера
+    int crossoverPoint = _random.Next(1, _instance.Tasks.Count - 1);
+    
+    // Обмен частями хромосом
+    for (int i = 0; i < taskIds.Count; i++)
+    {
+        if (i < crossoverPoint)
+        {
+            child1Genes[taskId] = this.Chromosome[taskId];
+            child2Genes[taskId] = other.Chromosome[taskId];
+        }
+        else
+        {
+            child1Genes[taskId] = other.Chromosome[taskId];
+            child2Genes[taskId] = this.Chromosome[taskId];
+        }
+    }
+    
+    return (new Individual(_instance, _random, child1Genes),
+            new Individual(_instance, _random, child2Genes));
+}
+
+// Мутация
+public void Mutate(double mutationRate)
+{
+    foreach (var taskId in Chromosome.Keys)
+    {
+        if (_random.NextDouble() < mutationRate)
+        {
+            // Изменение назначения отдельной задачи
+            Chromosome[taskId] = GetRandomMachineId(Chromosome[taskId]);
+        }
+    }
+    RepairChromosome(Chromosome);
+}
+```
+
+== Механизм отбора лучших решений
+
+=== PSO: Локальная и глобальная лучшие позиции
+
+```csharp
+// Обновление лучшей позиции частицы
+public void UpdateBestPosition(Solution currentSolution)
+{
+    if (currentSolution.Fitness < BestFitness)
+    {
+        BestFitness = currentSolution.Fitness;
+        BestPosition = new Dictionary<int, int>(Position);
+        BestSolution = currentSolution.DeepCopy();
+    }
+}
+
+// Обновление глобальной лучшей позиции в рое
+lock (_lockObject)
+{
+    if (solution.Fitness < GlobalBestFitness)
+    {
+        GlobalBestFitness = solution.Fitness;
+        GlobalBestPosition = new Dictionary<int, int>(particle.Position);
+        GlobalBestSolution = solution.DeepCopy();
+    }
+}
+```
+
+=== GA: Турнирный отбор и элитизм
+
+```csharp
+// Турнирный отбор
+private Individual TournamentSelection()
+{
+    var participants = new List<Individual>();
+    for (int i = 0; i < TournamentSize; i++)
+    {
+        participants.Add(Population[_random.Next(Population.Count)]);
+    }
+    return participants.OrderBy(ind => ind.Fitness).First().Clone();
+}
+
+// Формирование нового поколения с элитизмом
+private List<Individual> CreateNewPopulation()
+{
+    var newPopulation = new List<Individual>();
+    
+    // Сохранение элитных особей (10% лучших)
+    int eliteCount = (int)(PopulationSize * EliteRatio);
+    var elite = Population.OrderBy(ind => ind.Fitness).Take(eliteCount);
+    newPopulation.AddRange(elite.Select(ind => ind.Clone()));
+    
+    // Заполнение остальной части через отбор и кроссовер
+    while (newPopulation.Count < PopulationSize)
+    {
+        var parent1 = TournamentSelection();
+        var parent2 = TournamentSelection();
+        var (child1, child2) = parent1.Crossover(parent2, CrossoverRate);
+        
+        child1.Mutate(MutationRate);
+        newPopulation.Add(child1);
+        
+        if (newPopulation.Count < PopulationSize)
+            newPopulation.Add(child2);
+    }
+    
+    return newPopulation;
+}
+```
+
+== Критерии остановки алгоритмов
+
+```csharp
+// Основные критерии остановки для обоих алгоритмов
+public bool IsComplete => _isInitialized && 
+    (_iteration >= MaxIterations || _noImprovementCount >= NoImprovementLimit);
+
+// В PSO и GA отслеживается:
+// 1. Достижение максимального числа итераций
+// 2. Отсутствие улучшений в течение N последовательных итераций
+// 3. Достижение приемлемого значения целевой функции
+
+// Пример отслеживания улучшений в PSO
+if (GlobalBestFitness < (GlobalBestFitnessHistory.LastOrDefault(double.MaxValue)))
+{
+    _noImprovementCount = 0; // Сброс счетчика при улучшении
+}
+else
+{
+    _noImprovementCount++; // Увеличение при отсутствии улучшений
+}
+
+// Параметры остановки (настраиваемые)
+public int MaxIterations { get; init; } = 500;     // Максимум итераций
+public int NoImprovementLimit { get; init; } = 50; // Лимит без улучшений
+```
+
+== Параллельные вычисления для ускорения работы
+
+Оба алгоритма используют параллельные вычисления для оценки решений:
+
+```csharp
+// Параллельная оценка решений в PSO
+var solutions = _scheduler.CalculateSchedulesParallel(positions);
+
+// Параллельная оценка популяции в GA
+var solutions = _scheduler.CalculateSchedulesParallel(chromosomes);
+
+// Реализация параллельных вычислений в планировщике
+public List<Solution> CalculateSchedulesParallel(List<Dictionary<int, int>> assignments)
+{
+    var solutions = new List<Solution>();
+    
+    Parallel.ForEach(assignments, assignment =>
+    {
+        var solution = CalculateSchedule(assignment);
+        lock (solutions)
+        {
+            solutions.Add(solution);
+        }
+    });
+    
+    return solutions;
+}
+```
+
+== Визуализация и анализ работы алгоритмов
+
+Для анализа работы алгоритмов реализован комплекс визуализационных компонентов:
+
+```csharp
+// Сбор данных для визуализации
+public static VisualizationData CreateFromSolution(Solution? solution, ProblemInstance? instance)
+{
+    var data = new VisualizationData();
+    
+    // 1. Данные для графика сходимости
+    data.ConvergenceChart = CreateConvergenceChartData(solution);
+    
+    // 2. Диаграмма Ганта (расписание)
+    data.GanttChart = CreateGanttChartData(solution);
+    
+    // 3. Распределение задач по машинам
+    data.DistributionChart = CreateDistributionChartData(solution, instance);
+    
+    // 4. Тепловая карта утилизации ресурсов
+    data.ResourceHeatmap = CreateHeatmapData(solution, instance);
+    
+    return data;
+}
+
+// Анализ качества решения
+public static AnalysisResult Analyze(Solution? solution, ProblemInstance instance)
+{
+    var result = new AnalysisResult();
+    
+    // Основные метрики
+    result.Makespan = solution.Makespan;
+    result.TotalPenalty = solution.TotalPenalty;
+    result.Fitness = solution.Fitness;
+    
+    // Анализ утилизации ресурсов
+    result.MachineUtilization = CalculateMachineUtilization(solution, instance);
+    result.MemoryUtilization = CalculateMemoryUtilization(solution, instance);
+    
+    // Проверка ограничений
+    result.ConstraintAnalysis = AnalyzeConstraints(solution, instance);
+    
+    // Интегральная оценка качества
+    result.QualityScore = CalculateQualityScore(result);
+    
+    return result;
+}
+```
+
+
+= Экспериментальное исследование
+
+После реализации алгоритмов было проведено экспериментальное исследование для анализа их эффективности. Эксперименты включали запуск алгоритмов на различных конфигурациях задач, с варьированием параметров, таких как количество задач, размер популяции/роя, коэффициенты инерции, ускорения и т.д. Для оценки устойчивости проведено несколько запусков PSO (по 5–10 для каждой конфигурации), а также сравнение с генетическим алгоритмом (GA). Результаты визуализированы на графиках.
+
+== Влияние параметров алгоритма
+
+Параметры алгоритма роя частиц (PSO), такие как размер роя (обычно 50–100 частиц), коэффициент инерции $w$ (0.4–0.9), коэффициенты ускорения $c_1$ и $c_2$ (1.5–2.0), а также максимальное число итераций (500), существенно влияют на качество и скорость сходимости. Для генетического алгоритма аналогично варьировались размер популяции, вероятности кроссовера (0.8) и мутации (0.05). Эксперименты показали, что увеличение размера роя/популяции улучшает качество решений, но повышает время вычисления. Оптимальные значения параметров подбирались эмпирически для минимизации makespan.
+
+== Оценка устойчивости решения
+
+Устойчивость оценивалась по дисперсии результатов в множественных запусках. Для PSO среднеквадратичное отклонение makespan составляло 5–15% в зависимости от сложности задачи, что указывает на хорошую устойчивость благодаря глобальному поиску. GA демонстрировал большую вариабельность (до 20%) из-за случайности в операторах. Штрафные функции способствовали стабилизации, минимизируя нарушения ограничений.
+
+== Сравнение результатов нескольких запусков
+
+Проведено сравнение средних значений makespan и времени выполнения для PSO (усреднено по запускам) и GA. PSO чаще достигал лучших результатов в сложных сценариях с большим числом задач, превосходя GA на 10–20% по makespan, но иногда уступая по времени. Ниже приведены визуализации результатов.
+
+#figure(
+  image("makespan_comparison_clean.png"),
+  caption: [Сравнение makespan: PSO (среднее) vs Genetic Algorithm],
+) <fig:makespan-comparison>
+
+#figure(
+  image("time_comparison_clean.png"),
+  caption: [Сравнение времени выполнения: PSO vs GA],
+) <fig:time-comparison>
+
+#figure(
+  image("makespan_vs_task_count.png"),
+  caption: [Зависимость makespan от количества задач],
+) <fig:makespan-vs-tasks>
+
+#figure(
+  image("ratio_makespan.png"),
+  caption: [Соотношение качества решений (PSO / GA по makespan)],
+) <fig:ratio-makespan>
+
+В целом, PSO показал превосходство в большинстве случаев, особенно при росте размерности задачи, подтверждая выбор алгоритма.

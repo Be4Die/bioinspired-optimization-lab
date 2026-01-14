@@ -1,8 +1,11 @@
 @page "/"
 @using Lab.Web.Services
+@using Lab.Domain
+@using System.Text
 @using Size = MudBlazor.Size
 @inject AlgorithmService AlgorithmService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
 @implements IDisposable
 
 <PageTitle>Алгоритмы оптимизации - Распределение задач в облачной среде</PageTitle>
@@ -27,12 +30,49 @@
                     </MudRadioGroup>
                 </MudItem>
                 
+                <!-- Предустановленные эксперименты -->
+                <MudItem xs="12" Class="mb-3">
+                    <MudExpansionPanel Text="Предустановленные эксперименты" Icon="@Icons.Material.Filled.Science">
+                        <MudGrid>
+                            <MudItem xs="12">
+                                <MudSelect T="ExperimentPreset" @bind-Value="_selectedExperiment" 
+                                          Label="Выберите эксперимент" 
+                                          HelperText="10 экспериментов для анализа PSO"
+                                          Variant="Variant.Outlined"
+                                          ToStringFunc="GetExperimentName">
+                                    @foreach (var preset in _experimentPresets)
+                                    {
+                                        <MudSelectItem Value="preset">@GetExperimentName(preset)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            
+                            <MudItem xs="12" Class="mt-2">
+                                <MudButton Variant="Variant.Outlined"
+                                          Color="Color.Info"
+                                          StartIcon="@Icons.Material.Filled.Input"
+                                          OnClick="LoadExperimentPreset"
+                                          FullWidth="true"
+                                          Size="Size.Small">
+                                    Загрузить параметры эксперимента
+                                </MudButton>
+                            </MudItem>
+                            
+                            <MudItem xs="12" Class="mt-2">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    Всего 10 экспериментов. Каждый эксперимент нужно запустить 2 раза для статистики.
+                                </MudText>
+                            </MudItem>
+                        </MudGrid>
+                    </MudExpansionPanel>
+                </MudItem>
+                
                 <!-- Конфигурация задачи -->
                 <MudItem xs="12" sm="6" md="6">
                     <MudNumericField T="int" @bind-Value="_config.TaskCount"
                                      Label="Количество задач"
                                      Min="1"
-                                     Max="100"
+                                     Max="3000"
                                      Immediate="true"
                                      Margin="Margin.Dense" />
                 </MudItem>
@@ -40,7 +80,7 @@
                     <MudNumericField T="int" @bind-Value="_config.MachineCount"
                                      Label="Количество машин"
                                      Min="1"
-                                     Max="20"
+                                     Max="600"
                                      Immediate="true"
                                      Margin="Margin.Dense" />
                 </MudItem>
@@ -435,6 +475,52 @@
                         </MudButton>
                     </div>
                 </MudItem>
+
+                <!-- Экспорт результатов -->
+                <MudItem xs="12" Class="mt-3">
+                    <MudButton Variant="Variant.Filled"
+                              Color="Color.Info"
+                              StartIcon="@Icons.Material.Filled.Download"
+                              OnClick="ExportResults"
+                              FullWidth="true"
+                              Disabled="@(AlgorithmService.CurrentSolution == null)"
+                              Size="Size.Small">
+                        Экспорт результатов
+                    </MudButton>
+                </MudItem>
+
+                <!-- Запуск серии экспериментов -->
+                <MudItem xs="12" Class="mt-3">
+                    <MudExpansionPanel Text="Серия экспериментов" Icon="@Icons.Material.Filled.AutoAwesome">
+                        <MudGrid>
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2" Class="mb-2">
+                                    Запуск 10 экспериментов (основной алгоритм - PSO). 
+                                    Каждый эксперимент будет запущен 2 раза для статистики.
+                                </MudText>
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudButton Variant="Variant.Outlined"
+                                          Color="Color.Warning"
+                                          StartIcon="@Icons.Material.Filled.PlaylistPlay"
+                                          OnClick="RunExperimentSeries"
+                                          FullWidth="true"
+                                          Disabled="@(AlgorithmService.Status == AlgorithmStatus.Running)"
+                                          Size="Size.Small">
+                                    Запустить серию экспериментов
+                                </MudButton>
+                            </MudItem>
+                            
+                            <MudItem xs="12" Class="mt-2">
+                                <MudCheckBox T="bool"
+                                             @bind-Value="_includeGaComparison"
+                                             Label="Включить сравнение с GA"
+                                             Size="Size.Small" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudExpansionPanel>
+                </MudItem>
             </MudGrid>
         </MudPaper>
 
@@ -528,6 +614,55 @@
                                   Size="Size.Small">
                             @GetFeasibilityMessage(AlgorithmService.CurrentSolution.TotalPenalty)
                         </MudAlert>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        }
+
+        <!-- История экспериментов -->
+        @if (_experimentHistory.Count > 0)
+        {
+            <MudPaper Class="pa-3 mb-3" Elevation="1">
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.h6" Class="mb-2">История экспериментов</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Выполнено: @_experimentHistory.Count экспериментов
+                        </MudText>
+                    </MudItem>
+                    
+                    <MudItem xs="12" Class="mt-2">
+                        <MudTable Items="@_experimentHistory" Hover="true" Dense="true" Class="elevation-1">
+                            <HeaderContent>
+                                <MudTh>№</MudTh>
+                                <MudTh>Алгоритм</MudTh>
+                                <MudTh>Makespan</MudTh>
+                                <MudTh>Время (с)</MudTh>
+                                <MudTh>Действия</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>@(context.ExperimentNumber)</MudTd>
+                                <MudTd>@context.AlgorithmType</MudTd>
+                                <MudTd>@context.Makespan.ToString("F2")</MudTd>
+                                <MudTd>@context.ComputationTime.TotalSeconds.ToString("F2")</MudTd>
+                                <MudTd>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" 
+                                                   Size="Size.Small"
+                                                   OnClick="() => LoadExperimentResult(context)" />
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudItem>
+                    
+                    <MudItem xs="12" Class="mt-3">
+                        <MudButton Variant="Variant.Outlined"
+                                  Color="Color.Info"
+                                  StartIcon="@Icons.Material.Filled.Download"
+                                  OnClick="ExportExperimentHistory"
+                                  FullWidth="true"
+                                  Size="Size.Small">
+                            Экспорт истории экспериментов
+                        </MudButton>
                     </MudItem>
                 </MudGrid>
             </MudPaper>
@@ -719,6 +854,7 @@
     private bool _stepMode = false;
     private bool _showGraph = true;
     private bool _showHeatmap = true;
+    private bool _includeGaComparison = true;
     
     // Данные для тепловой карты
     private bool _enableSmoothGradient = true;
@@ -728,18 +864,351 @@
     private string[] _xLabels = []; // Метки по оси X (машины)
     private string[] _yLabels = []; // Метки по оси Y (метрики)
     
-    [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
+    // Эксперименты
+    private List<ExperimentPreset> _experimentPresets = new();
+    private ExperimentPreset? _selectedExperiment;
+    private List<ExperimentResult> _experimentHistory = new();
+    private int _experimentCounter = 1;
     
     protected override void OnInitialized()
     {
         base.OnInitialized();
         BuildOptions();
+        InitializeExperimentPresets();
         
         // Подписываемся на события сервиса
         AlgorithmService.OnProgressChanged += HandleProgressChanged;
         AlgorithmService.OnSolutionFound += HandleSolutionFound;
         AlgorithmService.OnVisualizationDataUpdated += HandleVisualizationUpdated;
         AlgorithmService.OnStatusChanged += HandleStatusChanged;
+    }
+    
+    private void InitializeExperimentPresets()
+    {
+        _experimentPresets = new List<ExperimentPreset>
+        {
+            // Эксперимент 1: Маленькая задача
+            new ExperimentPreset
+            {
+                Id = 1,
+                Name = "Эксперимент 1: Маленькая задача",
+                TaskCount = 10,
+                MachineCount = 2,
+                RandomSeed = 12345,
+                MinComputationVolume = 5,
+                MaxComputationVolume = 50,
+                MinMemoryRequirement = 1,
+                MaxMemoryRequirement = 10,
+                MaxPredecessors = 2,
+                MinMachinePerformance = 5,
+                MaxMachinePerformance = 15,
+                MinMachineMemory = 10,
+                MaxMachineMemory = 30,
+                PsoSwarmSize = 20,
+                PsoMaxIterations = 100,
+                PsoInertiaWeight = 0.7,
+                PsoCognitiveWeight = 1.5,
+                PsoSocialWeight = 1.5,
+                PsoNoImprovementLimit = 20,
+                GaPopulationSize = 30,
+                GaMaxGenerations = 100,
+                GaCrossoverRate = 0.8,
+                GaMutationRate = 0.1,
+                GaEliteRatio = 0.1,
+                GaTournamentSize = 3,
+                GaNoImprovementLimit = 20
+            },
+            
+            // Эксперимент 2: Средняя задача
+            new ExperimentPreset
+            {
+                Id = 2,
+                Name = "Эксперимент 2: Средняя задача",
+                TaskCount = 50,
+                MachineCount = 5,
+                RandomSeed = 23456,
+                MinComputationVolume = 10,
+                MaxComputationVolume = 100,
+                MinMemoryRequirement = 2,
+                MaxMemoryRequirement = 20,
+                MaxPredecessors = 3,
+                MinMachinePerformance = 10,
+                MaxMachinePerformance = 30,
+                MinMachineMemory = 20,
+                MaxMachineMemory = 50,
+                PsoSwarmSize = 30,
+                PsoMaxIterations = 200,
+                PsoInertiaWeight = 0.8,
+                PsoCognitiveWeight = 1.7,
+                PsoSocialWeight = 1.7,
+                PsoNoImprovementLimit = 30,
+                GaPopulationSize = 50,
+                GaMaxGenerations = 200,
+                GaCrossoverRate = 0.85,
+                GaMutationRate = 0.08,
+                GaEliteRatio = 0.1,
+                GaTournamentSize = 4,
+                GaNoImprovementLimit = 30
+            },
+            
+            // Эксперимент 3: Большая задача
+            new ExperimentPreset
+            {
+                Id = 3,
+                Name = "Эксперимент 3: Большая задача",
+                TaskCount = 100,
+                MachineCount = 10,
+                RandomSeed = 34567,
+                MinComputationVolume = 20,
+                MaxComputationVolume = 150,
+                MinMemoryRequirement = 5,
+                MaxMemoryRequirement = 30,
+                MaxPredecessors = 4,
+                MinMachinePerformance = 15,
+                MaxMachinePerformance = 50,
+                MinMachineMemory = 30,
+                MaxMachineMemory = 80,
+                PsoSwarmSize = 50,
+                PsoMaxIterations = 300,
+                PsoInertiaWeight = 0.6,
+                PsoCognitiveWeight = 2.0,
+                PsoSocialWeight = 2.0,
+                PsoNoImprovementLimit = 40,
+                GaPopulationSize = 80,
+                GaMaxGenerations = 300,
+                GaCrossoverRate = 0.9,
+                GaMutationRate = 0.05,
+                GaEliteRatio = 0.15,
+                GaTournamentSize = 5,
+                GaNoImprovementLimit = 40
+            },
+            
+            // Эксперимент 4: Много зависимостей
+            new ExperimentPreset
+            {
+                Id = 4,
+                Name = "Эксперимент 4: Много зависимостей",
+                TaskCount = 60,
+                MachineCount = 6,
+                RandomSeed = 45678,
+                MinComputationVolume = 15,
+                MaxComputationVolume = 120,
+                MinMemoryRequirement = 3,
+                MaxMemoryRequirement = 25,
+                MaxPredecessors = 5, // Много зависимостей
+                MinMachinePerformance = 12,
+                MaxMachinePerformance = 40,
+                MinMachineMemory = 25,
+                MaxMachineMemory = 60,
+                PsoSwarmSize = 40,
+                PsoMaxIterations = 250,
+                PsoInertiaWeight = 0.65,
+                PsoCognitiveWeight = 1.6,
+                PsoSocialWeight = 1.6,
+                PsoNoImprovementLimit = 35,
+                GaPopulationSize = 60,
+                GaMaxGenerations = 250,
+                GaCrossoverRate = 0.75,
+                GaMutationRate = 0.12,
+                GaEliteRatio = 0.1,
+                GaTournamentSize = 3,
+                GaNoImprovementLimit = 35
+            },
+            
+            // Эксперимент 5: Мало памяти
+            new ExperimentPreset
+            {
+                Id = 5,
+                Name = "Эксперимент 5: Мало памяти",
+                TaskCount = 40,
+                MachineCount = 4,
+                RandomSeed = 56789,
+                MinComputationVolume = 10,
+                MaxComputationVolume = 80,
+                MinMemoryRequirement = 8, // Большие требования памяти
+                MaxMemoryRequirement = 25,
+                MaxPredecessors = 3,
+                MinMachinePerformance = 10,
+                MaxMachinePerformance = 25,
+                MinMachineMemory = 15, // Мало доступной памяти
+                MaxMachineMemory = 30,
+                PsoSwarmSize = 35,
+                PsoMaxIterations = 200,
+                PsoInertiaWeight = 0.7,
+                PsoCognitiveWeight = 1.8,
+                PsoSocialWeight = 1.8,
+                PsoNoImprovementLimit = 30,
+                GaPopulationSize = 40,
+                GaMaxGenerations = 200,
+                GaCrossoverRate = 0.8,
+                GaMutationRate = 0.15, // Высокая мутация для исследования
+                GaEliteRatio = 0.1,
+                GaTournamentSize = 4,
+                GaNoImprovementLimit = 30
+            },
+            
+            // Эксперимент 6: Высокая производительность
+            new ExperimentPreset
+            {
+                Id = 6,
+                Name = "Эксперимент 6: Высокая производительность",
+                TaskCount = 120,
+                MachineCount = 12,
+                RandomSeed = 67890,
+                MinComputationVolume = 30,
+                MaxComputationVolume = 180,
+                MinMemoryRequirement = 10,
+                MaxMemoryRequirement = 40,
+                MaxPredecessors = 4,
+                MinMachinePerformance = 40, // Высокая производительность
+                MaxMachinePerformance = 100,
+                MinMachineMemory = 40,
+                MaxMachineMemory = 100,
+                PsoSwarmSize = 60,
+                PsoMaxIterations = 350,
+                PsoInertiaWeight = 0.75,
+                PsoCognitiveWeight = 1.9,
+                PsoSocialWeight = 1.9,
+                PsoNoImprovementLimit = 45,
+                GaPopulationSize = 100,
+                GaMaxGenerations = 350,
+                GaCrossoverRate = 0.85,
+                GaMutationRate = 0.06,
+                GaEliteRatio = 0.12,
+                GaTournamentSize = 6,
+                GaNoImprovementLimit = 45
+            },
+            
+            // Эксперимент 7: Много машин
+            new ExperimentPreset
+            {
+                Id = 7,
+                Name = "Эксперимент 7: Много машин",
+                TaskCount = 80,
+                MachineCount = 15,
+                RandomSeed = 78901,
+                MinComputationVolume = 20,
+                MaxComputationVolume = 100,
+                MinMemoryRequirement = 5,
+                MaxMemoryRequirement = 25,
+                MaxPredecessors = 3,
+                MinMachinePerformance = 10,
+                MaxMachinePerformance = 30,
+                MinMachineMemory = 20,
+                MaxMachineMemory = 40,
+                PsoSwarmSize = 45,
+                PsoMaxIterations = 250,
+                PsoInertiaWeight = 0.85,
+                PsoCognitiveWeight = 1.4,
+                PsoSocialWeight = 1.4,
+                PsoNoImprovementLimit = 35,
+                GaPopulationSize = 70,
+                GaMaxGenerations = 250,
+                GaCrossoverRate = 0.9,
+                GaMutationRate = 0.07,
+                GaEliteRatio = 0.1,
+                GaTournamentSize = 5,
+                GaNoImprovementLimit = 35
+            },
+            
+            // Эксперимент 8: Несбалансированные ресурсы
+            new ExperimentPreset
+            {
+                Id = 8,
+                Name = "Эксперимент 8: Несбалансированные ресурсы",
+                TaskCount = 70,
+                MachineCount = 7,
+                RandomSeed = 89012,
+                MinComputationVolume = 25,
+                MaxComputationVolume = 130,
+                MinMemoryRequirement = 6,
+                MaxMemoryRequirement = 35,
+                MaxPredecessors = 4,
+                MinMachinePerformance = 5, // Большой разброс в производительности
+                MaxMachinePerformance = 60,
+                MinMachineMemory = 15, // Большой разброс в памяти
+                MaxMachineMemory = 70,
+                PsoSwarmSize = 50,
+                PsoMaxIterations = 300,
+                PsoInertiaWeight = 0.6,
+                PsoCognitiveWeight = 2.2,
+                PsoSocialWeight = 2.2,
+                PsoNoImprovementLimit = 40,
+                GaPopulationSize = 90,
+                GaMaxGenerations = 300,
+                GaCrossoverRate = 0.88,
+                GaMutationRate = 0.09,
+                GaEliteRatio = 0.15,
+                GaTournamentSize = 7,
+                GaNoImprovementLimit = 40
+            },
+            
+            // Эксперимент 9: Большие задачи, мало машин
+            new ExperimentPreset
+            {
+                Id = 9,
+                Name = "Эксперимент 9: Большие задачи, мало машин",
+                TaskCount = 90,
+                MachineCount = 5,
+                RandomSeed = 90123,
+                MinComputationVolume = 40,
+                MaxComputationVolume = 200,
+                MinMemoryRequirement = 15,
+                MaxMemoryRequirement = 50,
+                MaxPredecessors = 3,
+                MinMachinePerformance = 20,
+                MaxMachinePerformance = 60,
+                MinMachineMemory = 50,
+                MaxMachineMemory = 120,
+                PsoSwarmSize = 55,
+                PsoMaxIterations = 350,
+                PsoInertiaWeight = 0.5,
+                PsoCognitiveWeight = 2.5,
+                PsoSocialWeight = 2.5,
+                PsoNoImprovementLimit = 45,
+                GaPopulationSize = 110,
+                GaMaxGenerations = 350,
+                GaCrossoverRate = 0.92,
+                GaMutationRate = 0.04,
+                GaEliteRatio = 0.18,
+                GaTournamentSize = 8,
+                GaNoImprovementLimit = 45
+            },
+            
+            // Эксперимент 10: Смешанный сложный случай
+            new ExperimentPreset
+            {
+                Id = 10,
+                Name = "Эксперимент 10: Смешанный сложный случай",
+                TaskCount = 150,
+                MachineCount = 15,
+                RandomSeed = 123456,
+                MinComputationVolume = 50,
+                MaxComputationVolume = 250,
+                MinMemoryRequirement = 20,
+                MaxMemoryRequirement = 60,
+                MaxPredecessors = 6,
+                MinMachinePerformance = 30,
+                MaxMachinePerformance = 120,
+                MinMachineMemory = 40,
+                MaxMachineMemory = 150,
+                PsoSwarmSize = 80,
+                PsoMaxIterations = 500,
+                PsoInertiaWeight = 0.55,
+                PsoCognitiveWeight = 2.8,
+                PsoSocialWeight = 2.8,
+                PsoNoImprovementLimit = 60,
+                GaPopulationSize = 150,
+                GaMaxGenerations = 500,
+                GaCrossoverRate = 0.95,
+                GaMutationRate = 0.03,
+                GaEliteRatio = 0.2,
+                GaTournamentSize = 10,
+                GaNoImprovementLimit = 60
+            }
+        };
+        
+        _selectedExperiment = _experimentPresets.FirstOrDefault();
     }
     
     private async void HandleStatusChanged(object? sender, AlgorithmStatus status)
@@ -878,6 +1347,12 @@
             {
                 await AlgorithmService.RunAlgorithmAsync();
                 Snackbar.Add("Алгоритм успешно завершен", Severity.Success);
+                
+                // Сохраняем результат в историю экспериментов
+                if (AlgorithmService.CurrentSolution != null)
+                {
+                    SaveExperimentResult();
+                }
             }
         }
         catch (Exception ex)
@@ -922,6 +1397,12 @@
             if (AlgorithmService.Status == AlgorithmStatus.Completed)
             {
                 Snackbar.Add("Алгоритм завершен в пошаговом режиме", Severity.Success);
+                
+                // Сохраняем результат в историю экспериментов
+                if (AlgorithmService.CurrentSolution != null)
+                {
+                    SaveExperimentResult();
+                }
             }
         }
         catch (Exception ex)
@@ -971,6 +1452,303 @@
     {
         BuildHeatmapData();
         InvokeAsync(StateHasChanged);
+    }
+    
+    // Методы для работы с экспериментами
+    
+    private string GetExperimentName(ExperimentPreset preset)
+    {
+        return preset?.Name ?? "Неизвестный эксперимент";
+    }
+    
+    private async System.Threading.Tasks.Task LoadExperimentPreset()
+    {
+        if (_selectedExperiment == null)
+            return;
+            
+        try
+        {
+            // Загружаем параметры задачи
+            _config.TaskCount = _selectedExperiment.TaskCount;
+            _config.MachineCount = _selectedExperiment.MachineCount;
+            _config.RandomSeed = _selectedExperiment.RandomSeed;
+            _config.MinComputationVolume = _selectedExperiment.MinComputationVolume;
+            _config.MaxComputationVolume = _selectedExperiment.MaxComputationVolume;
+            _config.MinMemoryRequirement = _selectedExperiment.MinMemoryRequirement;
+            _config.MaxMemoryRequirement = _selectedExperiment.MaxMemoryRequirement;
+            _config.MaxPredecessors = _selectedExperiment.MaxPredecessors;
+            _config.MinMachinePerformance = _selectedExperiment.MinMachinePerformance;
+            _config.MaxMachinePerformance = _selectedExperiment.MaxMachinePerformance;
+            _config.MinMachineMemory = _selectedExperiment.MinMachineMemory;
+            _config.MaxMachineMemory = _selectedExperiment.MaxMachineMemory;
+            
+            // Загружаем параметры PSO
+            _psoConfig.SwarmSize = _selectedExperiment.PsoSwarmSize;
+            _psoConfig.MaxIterations = _selectedExperiment.PsoMaxIterations;
+            _psoConfig.InertiaWeight = _selectedExperiment.PsoInertiaWeight;
+            _psoConfig.CognitiveWeight = _selectedExperiment.PsoCognitiveWeight;
+            _psoConfig.SocialWeight = _selectedExperiment.PsoSocialWeight;
+            _psoConfig.NoImprovementLimit = _selectedExperiment.PsoNoImprovementLimit;
+            
+            // Загружаем параметры GA
+            _gaConfig.PopulationSize = _selectedExperiment.GaPopulationSize;
+            _gaConfig.MaxGenerations = _selectedExperiment.GaMaxGenerations;
+            _gaConfig.CrossoverRate = _selectedExperiment.GaCrossoverRate;
+            _gaConfig.MutationRate = _selectedExperiment.GaMutationRate;
+            _gaConfig.EliteRatio = _selectedExperiment.GaEliteRatio;
+            _gaConfig.TournamentSize = _selectedExperiment.GaTournamentSize;
+            _gaConfig.NoImprovementLimit = _selectedExperiment.GaNoImprovementLimit;
+            
+            // Устанавливаем алгоритм PSO как основной
+            _selectedAlgorithmType = AlgorithmType.Pso;
+            AlgorithmService.CurrentAlgorithmType = AlgorithmType.Pso;
+            
+            Snackbar.Add($"Параметры эксперимента '{_selectedExperiment.Name}' загружены", Severity.Success);
+            
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка загрузки эксперимента: {ex.Message}", Severity.Error);
+        }
+    }
+    
+    private async System.Threading.Tasks.Task RunExperimentSeries()
+    {
+        if (_experimentPresets.Count == 0)
+            return;
+            
+        try
+        {
+            Snackbar.Add("Начало серии экспериментов...", Severity.Info);
+            
+            foreach (var preset in _experimentPresets)
+            {
+                // Запускаем эксперимент с PSO (2 раза)
+                for (int run = 1; run <= 2; run++)
+                {
+                    Snackbar.Add($"Эксперимент {preset.Id} (PSO), запуск {run}...", Severity.Info);
+                    
+                    // Загружаем параметры
+                    _selectedExperiment = preset;
+                    await LoadExperimentPreset();
+                    
+                    // Инициализируем задачу
+                    await InitializeProblem();
+                    
+                    // Запускаем алгоритм
+                    _isRunning = true;
+                    UpdateAlgorithmConfiguration();
+                    
+                    try
+                    {
+                        await AlgorithmService.RunAlgorithmAsync();
+                        
+                        if (AlgorithmService.CurrentSolution != null)
+                        {
+                            SaveExperimentResult();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Snackbar.Add($"Ошибка в эксперименте {preset.Id}: {ex.Message}", Severity.Error);
+                    }
+                    
+                    // Небольшая пауза между запусками
+                    await System.Threading.Tasks.Task.Delay(500);
+                }
+                
+                // Если включено сравнение с GA, запускаем GA
+                if (_includeGaComparison)
+                {
+                    Snackbar.Add($"Эксперимент {preset.Id} (GA)...", Severity.Info);
+                    
+                    // Устанавливаем алгоритм GA
+                    _selectedAlgorithmType = AlgorithmType.Genetic;
+                    AlgorithmService.CurrentAlgorithmType = AlgorithmType.Genetic;
+                    
+                    // Инициализируем задачу с теми же параметрами
+                    await InitializeProblem();
+                    
+                    // Запускаем алгоритм
+                    _isRunning = true;
+                    UpdateAlgorithmConfiguration();
+                    
+                    try
+                    {
+                        await AlgorithmService.RunAlgorithmAsync();
+                        
+                        if (AlgorithmService.CurrentSolution != null)
+                        {
+                            SaveExperimentResult();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Snackbar.Add($"Ошибка в эксперименте {preset.Id} (GA): {ex.Message}", Severity.Error);
+                    }
+                    
+                    // Возвращаем PSO как основной алгоритм
+                    _selectedAlgorithmType = AlgorithmType.Pso;
+                    AlgorithmService.CurrentAlgorithmType = AlgorithmType.Pso;
+                }
+                
+                // Пауза между экспериментами
+                await System.Threading.Tasks.Task.Delay(1000);
+            }
+            
+            Snackbar.Add("Серия экспериментов завершена!", Severity.Success);
+            
+            // Экспортируем историю экспериментов
+            await ExportExperimentHistory();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка выполнения серии экспериментов: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isRunning = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    
+    private void SaveExperimentResult()
+    {
+        if (AlgorithmService.CurrentSolution == null || AlgorithmService.CurrentInstance == null)
+            return;
+            
+        var result = new ExperimentResult
+        {
+            ExperimentNumber = _experimentCounter++,
+            AlgorithmType = _selectedAlgorithmType.ToString(),
+            Timestamp = DateTime.Now,
+            TaskCount = AlgorithmService.CurrentInstance.Tasks.Count,
+            MachineCount = AlgorithmService.CurrentInstance.VirtualMachines.Count,
+            Makespan = AlgorithmService.CurrentSolution.Makespan,
+            TotalPenalty = AlgorithmService.CurrentSolution.TotalPenalty,
+            Fitness = AlgorithmService.CurrentSolution.Fitness,
+            ComputationTime = AlgorithmService.CurrentSolution.ComputationTime,
+            IterationFound = AlgorithmService.CurrentSolution.IterationFound,
+            IsFeasible = AlgorithmService.CurrentSolution.TotalPenalty <= 0,
+            Configuration = _selectedExperiment != null ? _selectedExperiment.Name : "Пользовательская конфигурация"
+        };
+        
+        _experimentHistory.Add(result);
+        
+        Snackbar.Add($"Результат эксперимента {result.ExperimentNumber} сохранен", Severity.Info);
+    }
+    
+    private async System.Threading.Tasks.Task LoadExperimentResult(ExperimentResult result)
+    {
+        // Здесь можно добавить функционал для загрузки сохраненного результата
+        Snackbar.Add($"Загрузка результата эксперимента {result.ExperimentNumber}", Severity.Info);
+    }
+    
+    // Методы экспорта
+    
+    private async System.Threading.Tasks.Task ExportResults()
+    {
+        if (AlgorithmService.CurrentSolution == null || AlgorithmService.CurrentInstance == null)
+        {
+            Snackbar.Add("Нет данных для экспорта", Severity.Warning);
+            return;
+        }
+        
+        try
+        {
+            var exportData = new
+            {
+                Metadata = new
+                {
+                    ExportDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    Algorithm = _selectedAlgorithmType.ToString(),
+                    TaskCount = AlgorithmService.CurrentInstance.Tasks.Count,
+                    MachineCount = AlgorithmService.CurrentInstance.VirtualMachines.Count
+                },
+                Configuration = new
+                {
+                    TaskConfiguration = _config,
+                    AlgorithmConfiguration = _selectedAlgorithmType == AlgorithmType.Pso ? 
+                        (object)_psoConfig : _gaConfig
+                },
+                Solution = new
+                {
+                    Makespan = AlgorithmService.CurrentSolution.Makespan,
+                    TotalPenalty = AlgorithmService.CurrentSolution.TotalPenalty,
+                    Fitness = AlgorithmService.CurrentSolution.Fitness,
+                    ComputationTime = AlgorithmService.CurrentSolution.ComputationTime.TotalSeconds,
+                    IterationFound = AlgorithmService.CurrentSolution.IterationFound,
+                    Assignment = AlgorithmService.CurrentSolution.Assignment,
+                    IsValid = AlgorithmService.CurrentSolution.IsValid(AlgorithmService.CurrentInstance)
+                },
+                Analysis = ResultAnalyzer.Analyze(AlgorithmService.CurrentSolution, AlgorithmService.CurrentInstance)
+            };
+            
+            string json = System.Text.Json.JsonSerializer.Serialize(exportData, 
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            
+            string fileName = $"optimization_result_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+            await DownloadFile(fileName, "application/json", json);
+            
+            Snackbar.Add($"Результаты экспортированы в {fileName}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка экспорта: {ex.Message}", Severity.Error);
+        }
+    }
+    
+    private async System.Threading.Tasks.Task ExportExperimentHistory()
+    {
+        if (_experimentHistory.Count == 0)
+        {
+            Snackbar.Add("Нет истории экспериментов для экспорта", Severity.Warning);
+            return;
+        }
+        
+        try
+        {
+            var exportData = new
+            {
+                Metadata = new
+                {
+                    ExportDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    ExperimentCount = _experimentHistory.Count,
+                    Description = "Результаты 10 экспериментов с PSO (каждый запущен 2 раза) и сравнение с GA"
+                },
+                Experiments = _experimentHistory,
+                Summary = new
+                {
+                    AverageMakespan = _experimentHistory.Average(e => e.Makespan),
+                    AverageComputationTime = _experimentHistory.Average(e => e.ComputationTime.TotalSeconds),
+                    PsoResults = _experimentHistory.Where(e => e.AlgorithmType == "Pso").ToList(),
+                    GaResults = _experimentHistory.Where(e => e.AlgorithmType == "Genetic").ToList(),
+                    BestPSOResult = _experimentHistory.Where(e => e.AlgorithmType == "Pso").OrderBy(e => e.Fitness).FirstOrDefault(),
+                    BestGAResult = _experimentHistory.Where(e => e.AlgorithmType == "Genetic").OrderBy(e => e.Fitness).FirstOrDefault()
+                }
+            };
+            
+            string json = System.Text.Json.JsonSerializer.Serialize(exportData, 
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            
+            string fileName = $"experiment_history_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+            await DownloadFile(fileName, "application/json", json);
+            
+            Snackbar.Add($"История экспериментов экспортирована в {fileName}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка экспорта истории: {ex.Message}", Severity.Error);
+        }
+    }
+    
+    private async System.Threading.Tasks.Task DownloadFile(string fileName, string contentType, string content)
+    {
+        var bytes = Encoding.UTF8.GetBytes(content);
+        var base64 = Convert.ToBase64String(bytes);
+        
+        await JSRuntime.InvokeVoidAsync("downloadFile", fileName, contentType, base64);
     }
     
     private Color GetStatusColor(AlgorithmStatus status)
@@ -1034,6 +1812,7 @@
     }
     
     // Вспомогательные классы
+    
     private class ProblemConfiguration
     {
         public int TaskCount { get; set; } = 20;
@@ -1063,5 +1842,58 @@
             
             return true;
         }
+    }
+    
+    private class ExperimentPreset
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        
+        // Параметры задачи
+        public int TaskCount { get; set; }
+        public int MachineCount { get; set; }
+        public int RandomSeed { get; set; }
+        public int MinComputationVolume { get; set; }
+        public int MaxComputationVolume { get; set; }
+        public int MinMemoryRequirement { get; set; }
+        public int MaxMemoryRequirement { get; set; }
+        public int MaxPredecessors { get; set; }
+        public int MinMachinePerformance { get; set; }
+        public int MaxMachinePerformance { get; set; }
+        public int MinMachineMemory { get; set; }
+        public int MaxMachineMemory { get; set; }
+        
+        // Параметры PSO
+        public int PsoSwarmSize { get; set; }
+        public int PsoMaxIterations { get; set; }
+        public double PsoInertiaWeight { get; set; }
+        public double PsoCognitiveWeight { get; set; }
+        public double PsoSocialWeight { get; set; }
+        public int PsoNoImprovementLimit { get; set; }
+        
+        // Параметры GA
+        public int GaPopulationSize { get; set; }
+        public int GaMaxGenerations { get; set; }
+        public double GaCrossoverRate { get; set; }
+        public double GaMutationRate { get; set; }
+        public double GaEliteRatio { get; set; }
+        public int GaTournamentSize { get; set; }
+        public int GaNoImprovementLimit { get; set; }
+    }
+    
+    private class ExperimentResult
+    {
+        public int ExperimentNumber { get; set; }
+        public string AlgorithmType { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+        public int TaskCount { get; set; }
+        public int MachineCount { get; set; }
+        public double Makespan { get; set; }
+        public double TotalPenalty { get; set; }
+        public double Fitness { get; set; }
+        public TimeSpan ComputationTime { get; set; }
+        public int IterationFound { get; set; }
+        public bool IsFeasible { get; set; }
+        public string Configuration { get; set; } = string.Empty;
     }
 }
