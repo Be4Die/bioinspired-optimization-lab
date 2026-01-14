@@ -1,13 +1,13 @@
 {
   "mainAssemblyName": "Lab.Web",
   "resources": {
-    "hash": "sha256-U48liZDzThSBNzJ+aypV2W3DaCGsC+Xh0B/1NOrCBAQ=",
+    "hash": "sha256-QXYZKP6ZWiE/tue5nEqbDEamfsuNk53SpTWPux1bNyo=",
     "fingerprinting": {
       "Blazor.Diagrams.Core.cu01qs04rn.wasm": "Blazor.Diagrams.Core.wasm",
       "Blazor.Diagrams.12kt0ks3bp.wasm": "Blazor.Diagrams.wasm",
       "Lab.Algorithms.fdckdhrr2k.wasm": "Lab.Algorithms.wasm",
       "Lab.Domain.17a3a6d3s5.wasm": "Lab.Domain.wasm",
-      "Lab.Web.56g4yay1h2.wasm": "Lab.Web.wasm",
+      "Lab.Web.07y9iv7dr2.wasm": "Lab.Web.wasm",
       "Microsoft.AspNetCore.Authorization.is84zt9n9u.wasm": "Microsoft.AspNetCore.Authorization.wasm",
       "Microsoft.AspNetCore.Components.Forms.0uwmec0ev6.wasm": "Microsoft.AspNetCore.Components.Forms.wasm",
       "Microsoft.AspNetCore.Components.3zig3jhz80.wasm": "Microsoft.AspNetCore.Components.wasm",
@@ -234,7 +234,7 @@
       "Blazor.Diagrams.12kt0ks3bp.wasm": "sha256-N6W25VGvgnzvPrZNuIaDR49p/Mc2nbhGujovOVUnPPk=",
       "Lab.Algorithms.fdckdhrr2k.wasm": "sha256-XQO2eGctJjqLn8RR4OOl10gI44hjw099OvrIAsEgAgY=",
       "Lab.Domain.17a3a6d3s5.wasm": "sha256-XQiB19mxfSYEpcD7P1n6cO1SW010JkFqWLDDjpHNW4I=",
-      "Lab.Web.56g4yay1h2.wasm": "sha256-3VRMImZHoJl8aUBc2u9H7RPUkkjgLgCcxOszTGM2lTA=",
+      "Lab.Web.07y9iv7dr2.wasm": "sha256-XPPznuF2Lnwji9lv+kfmBncleh//W1f463ir+b//z0U=",
       "Microsoft.AspNetCore.Authorization.is84zt9n9u.wasm": "sha256-guw4IWfKGlNkHrUV1Ro5eLh98N+iIenpmpe4lAcorzE=",
       "Microsoft.AspNetCore.Components.Forms.0uwmec0ev6.wasm": "sha256-uE2FWvQ9yaBB9bha7pTpAp2LS2MdPMPeax7aRBtkCnk=",
       "Microsoft.AspNetCore.Components.3zig3jhz80.wasm": "sha256-8VxytmQ5GFOn78KQH7APS4va0+286cMZrGP/fZVBGoY=",
